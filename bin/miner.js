@@ -88,7 +88,7 @@ class Miner {
     const result = await this.getWork(this.root);
 
     if (!result)
-      return null;
+      return;
 
     const {
       hdr,
@@ -239,7 +239,7 @@ class Miner {
       }
     }
 
-    return [null, 0, false];
+    return [null, 0];
   }
 
   getJob() {

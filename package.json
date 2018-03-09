@@ -26,7 +26,7 @@
     "install-regtest": "./scripts/rebuild regtest",
     "install-simnet": "./scripts/rebuild simnet",
     "clean": "./scripts/clean",
-    "lint": "eslint lib/ test/ || exit 0",
+    "lint": "eslint bin/* lib/*.js test/*.js || exit 0",
     "test": "mocha --reporter spec test/*-test.js"
   },
   "dependencies": {

@@ -2,9 +2,7 @@
 
 'use strict';
 
-const assert = require('assert');
 const Config = require('bcfg');
-const request = require('brq');
 const Miner = require('./miner');
 const lib = require('../');
 const pkg = require('../package.json');
@@ -63,7 +61,8 @@ if (version) {
 
 if (help) {
   console.error(`hsk-miner ${pkg.version}`);
-  console.error('  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
+  console.error(
+    '  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
   console.error('');
   console.error('Usage:');
   console.error('$ hsk-miner --rpc-ssl');
