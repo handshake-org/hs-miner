@@ -1,6 +1,6 @@
 {
   "name": "hsk-miner",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "HSK CUDA miner",
   "keywords": [
     "crypto",
