@@ -1,0 +1,151 @@
+#!/bin/bash
+
+MAIN_BITS=29
+MAIN_SIZE=42
+MAIN_EASE=50
+
+TESTNET_BITS=15
+TESTNET_SIZE=18
+TESTNET_EASE=50
+
+REGTEST_BITS=15
+REGTEST_SIZE=18
+REGTEST_EASE=50
+
+SIMNET_BITS=15
+SIMNET_SIZE=18
+SIMNET_EASE=50
+
+NETWORK=$(test -n "$HSK_NETWORK" && echo "$HSK_NETWORK" || echo 'main')
+
+if test -n "$2"; then
+  NETWORK=$2
+fi
+
+if test -z "$CUDA_PREFIX"; then
+  if test -d /usr/local/cuda; then
+    CUDA_PREFIX=/usr/local/cuda
+  else
+    CUDA_PREFIX=/opt/cuda
+  fi
+fi
+
+if test -z "$CUDA_LIB"; then
+  if test -d "${CUDA_PREFIX}/lib64"; then
+    CUDA_LIB="${CUDA_PREFIX}/lib64"
+  else
+    CUDA_LIB="${CUDA_PREFIX}/lib"
+  fi
+fi
+
+if test -z "$CUDA_BIN"; then
+  CUDA_BIN="${CUDA_PREFIX}/bin"
+fi
+
+if test -z "$NVCC"; then
+  NVCC="${CUDA_BIN}/nvcc"
+fi
+
+case "$1" in
+  cuda)
+    echo "$CUDA_PREFIX"
+  ;;
+  cuda_lib)
+    echo "$CUDA_LIB"
+  ;;
+  cuda_bin)
+    echo "$CUDA_BIN"
+  ;;
+  cuda_has)
+    if test ! -d "$CUDA_BIN" \
+      || test ! -d "$CUDA_LIB" \
+      || test ! -x "${NVCC}" \
+      || test ! -e "${CUDA_LIB}/libcudart.so"; then
+      echo 0
+    else
+      echo 1
+    fi
+  ;;
+  nvcc)
+    echo "$NVCC"
+  ;;
+  endian)
+    python -c \
+      'from __future__ import print_function; import sys; print(sys.byteorder)'
+  ;;
+  network)
+    case "$NETWORK" in
+      main | testnet | regtest | simnet)
+      ;;
+      *)
+        echo 'Bad network.' 2>& 1
+        exit 1
+      ;;
+    esac
+    echo "$NETWORK"
+  ;;
+  bits)
+    case "$NETWORK" in
+      main)
+        echo "$MAIN_BITS"
+      ;;
+      testnet)
+        echo "$TESTNET_BITS"
+      ;;
+      regtest)
+        echo "$REGTEST_BITS"
+      ;;
+      simnet)
+        echo "$SIMNET_BITS"
+      ;;
+      *)
+        echo 'Bad network.' 2>& 1
+        exit 1
+      ;;
+    esac
+  ;;
+  size)
+    case "$NETWORK" in
+      main)
+        echo "$MAIN_SIZE"
+      ;;
+      testnet)
+        echo "$TESTNET_SIZE"
+      ;;
+      regtest)
+        echo "$REGTEST_SIZE"
+      ;;
+      simnet)
+        echo "$SIMNET_SIZE"
+      ;;
+      *)
+        echo 'Bad network.' 2>& 1
+        exit 1
+      ;;
+    esac
+  ;;
+  ease)
+    case "$NETWORK" in
+      main)
+        echo "$MAIN_EASE"
+      ;;
+      testnet)
+        echo "$TESTNET_EASE"
+      ;;
+      regtest)
+        echo "$REGTEST_EASE"
+      ;;
+      simnet)
+        echo "$SIMNET_EASE"
+      ;;
+      *)
+        echo 'Bad network.' 2>& 1
+        exit 1
+      ;;
+    esac
+  ;;
+  *)
+    echo 'Bad action.' 2>& 1
+    exit 1
+  ;;
+esac

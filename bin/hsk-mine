@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const assert = require('assert');
+const Config = require('bcfg');
+const miner = require('../');
+const pkg = require('../package.json');
+
+const config = new Config('hsk-mine');
+
+config.load({
+  env: true,
+  argv: true
+});
+
+let hdr;
+let target;
+let backend;
+let nonce;
+let range;
+let threads;
+let trims;
+let device;
+let random;
+let mantissa;
+let quiet;
+let info;
+let version;
+let help;
+
+try {
+  hdr = config.buf(['header', 'hdr', 0], null, 'hex');
+  target = config.buf(['target', 't', 1], null, 'hex');
+  backend = config.str(['backend', 'b', 2], miner.BACKEND);
+  nonce = config.uint(['nonce', 'n'], 0);
+  range = config.uint(['range', 'r'], 0xffffffff);
+  threads = config.uint(['threads', 'x'], 0);
+  trims = config.uint(['trims', 's'], 0);
+  device = config.uint(['device', 'd'], 0);
+  random = config.bool(['random', 'a'], false);
+  mantissa = config.uint(['bits', 'm'], 0);
+  quiet = config.bool(['quiet', 'q'], false);
+  info = config.bool(['info', 'i'], false);
+  version = config.bool(['version', 'v'], false);
+  help = config.bool(['help', 'h', '?'], false);
+} catch (e) {
+  console.error(e.message);
+  random = false;
+  target = null;
+  mantissa = 0;
+  info = false;
+  version = false;
+  help = true;
+}
+
+if (version) {
+  console.error(pkg.version);
+  process.exit(1);
+  return;
+}
+
+if (random) {
+  const crypto = require('crypto');
+  hdr = crypto.randomBytes(miner.HDR_SIZE);
+}
+
+if (info)
+  hdr = Buffer.alloc(4);
+
+if (target && target.length === 4) {
+  mantissa = target.readUInt32BE(0, true);
+  target = null;
+}
+
+if (mantissa && !target)
+  target = miner.toTarget(mantissa);
+else
+  target = miner.TARGET;
+
+if (!hdr || help) {
+  console.error(`hsk-mine ${pkg.version}`);
+  console.error('  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
+  console.error('');
+  console.error('Usage: $ hsk-mine [header]    [target]   [backend]');
+  console.error('                  --target [hex]  --backend [name]');
+  console.error('                  --nonce [num]   --range [num]');
+  console.error('                  --threads [num] --trims [num]');
+  console.error('                  --device [num]  --random');
+  console.error('                  --bits [num]    --quiet');
+  console.error('                  --info          --help');
+  process.exit(1);
+  return;
+}
+
+if (!quiet || info) {
+  if (!info) {
+    console.log('Mining header: %s', hdr.toString('hex'));
+    console.log('Target: %s', target.toString('hex'));
+  }
+
+  console.log('Backend: %s', backend);
+  console.log('CUDA: %s', miner.HAS_CUDA);
+  console.log('Network: %s', miner.NETWORK);
+  console.log('Bits: %d', miner.EDGE_BITS);
+  console.log('Size: %d', miner.PROOF_SIZE);
+
+  if (miner.HAS_CUDA) {
+    console.log('CUDA Devices:');
+    for (const {id, name, memory, bits, clock} of miner.getDevices())
+      console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+  } else {
+    console.log('CPUs:');
+    for (const {id, name, memory, bits, clock} of miner.getCPUs())
+      console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+  }
+
+  if (info) {
+    process.exit(0);
+    return;
+  }
+}
+
+(async () => {
+  const [sol, result, match] = await miner.mineAsync(hdr, {
+    backend,
+    nonce,
+    range,
+    target,
+    threads,
+    trims,
+    device
+  });
+
+  if (!quiet) {
+    console.log('Solution:');
+    console.log(miner.toArray(sol));
+    console.log('Nonce: %d', result);
+    console.log('Match: %s', match);
+  }
+
+  hdr.writeUInt32LE(result, hdr.length - 4, true);
+
+  assert.strictEqual(miner.verify(hdr, sol, match ? target : null), 0);
+
+  const raw = Buffer.allocUnsafe(hdr.length + 1 + sol.length);
+  hdr.copy(raw, 0);
+  raw[hdr.length] = sol.length >>> 2;
+  sol.copy(raw, hdr.length + 1);
+
+  if (!quiet)
+    console.log('Mined header:');
+
+  console.log(raw.toString('hex'));
+})().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});

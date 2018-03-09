@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const assert = require('assert');
+const Config = require('bcfg');
+const request = require('brq');
+const Miner = require('./miner');
+const lib = require('../');
+const pkg = require('../package.json');
+
+const config = new Config('hsk', {
+  suffix: 'network',
+  fallback: 'main'
+});
+
+config.inject({ network: lib.NETWORK });
+
+config.load({
+  env: true,
+  argv: true
+});
+
+config.open('miner.conf');
+
+let backend;
+let range;
+let threads;
+let trims;
+let device;
+let ssl;
+let host;
+let port;
+let user;
+let pass;
+let version;
+let help;
+
+try {
+  backend = config.str(['backend', 'b'], lib.BACKEND);
+  range = config.uint(['range', 'r'], 10000);
+  threads = config.uint(['threads', 'x'], 0);
+  trims = config.uint(['trims', 's'], 0);
+  device = config.uint(['device', 'd'], -1);
+  ssl = config.str(['rpc-ssl', 'l'], false);
+  host = config.str(['rpc-host', 'i'], 'localhost');
+  port = config.uint(['rpc-port', 'p'], 0);
+  user = config.str(['rpc-user', 'u'], 'hskrpc');
+  pass = config.str(['rpc-pass', 'k'], '');
+  version = config.bool(['version', 'v'], false);
+  help = config.bool(['help', 'h', '?'], false);
+} catch (e) {
+  console.error(e.message);
+  version = false;
+  help = true;
+}
+
+if (version) {
+  console.error(pkg.version);
+  process.exit(1);
+  return;
+}
+
+if (help) {
+  console.error(`hsk-miner ${pkg.version}`);
+  console.error('  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
+  console.error('');
+  console.error('Usage:');
+  console.error('$ hsk-miner --rpc-ssl');
+  console.error('            --rpc-host [host] --rpc-port [port]');
+  console.error('            --rpc-user [user] --rpc-pass [pass]');
+  console.error('            --backend [backend] --range [range]');
+  console.error('            --threads [threads] --trims [trims]');
+  console.error('            --device [device] --help');
+  process.exit(1);
+  return;
+}
+
+const miner = new Miner({
+  backend,
+  range,
+  threads,
+  trims,
+  device,
+  ssl,
+  host,
+  port,
+  user,
+  pass
+});
+
+miner.start();

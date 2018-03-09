@@ -1,0 +1,545 @@
+#!/bin/bash
+
+set -e
+
+rl=0
+
+if ! type perl > /dev/null 2>& 1; then
+  if uname | grep -i 'darwin' > /dev/null; then
+    echo 'Build requires perl on OSX.' >& 2
+    exit 1
+  fi
+  rl=1
+fi
+
+if test $rl -eq 1; then
+  file=$(readlink -f "$0")
+else
+  # Have to do it this way
+  # because OSX isn't a real OS
+  file=$(perl -MCwd -e "print Cwd::realpath('$0')")
+fi
+
+dir=$(dirname "$file")
+
+cd ${dir}/..
+
+meancu=src/tromp/mean_miner.cu
+leancu=src/tromp/lean_miner.cu
+meanhpp=src/tromp/mean_miner.hpp
+leanhpp=src/tromp/lean_miner.hpp
+simplecpp=src/tromp/simple_miner.cpp
+cuckooh=src/tromp/cuckoo.h
+siphashh=src/tromp/siphash.h
+siphashcuh=src/tromp/siphash.cuh
+siphashxnh=src/tromp/siphashxN.h
+
+split() {
+  local total=$(wc -l "$2" | awk '{ print $1 }')
+  local ln=$(cat "$2" | grep -n "$1" | cut -d : -f 1)
+  local i=$3
+  local j=$4
+
+  top=$(head -n $((ln + i)) "$2")
+  bot=$(tail -n $((total - ln + j)) "$2")
+}
+
+join() {
+  echo "$top" > "$2"
+  echo "$1" >> "$2"
+  echo "$bot" >> "$2"
+}
+
+splice() {
+  split "$1" "$3" -1 0
+  join "$2" "$3"
+}
+
+splice_before() {
+  split "$1" "$3" -1 1
+  join "$2" "$3"
+}
+
+splice_after() {
+  split "$1" "$3" 0 0
+  join "$2" "$3"
+}
+
+drop_after() {
+  local before=0
+  test -n "$3" && before=$3
+  local ln=$(cat "$2" | grep -n "$1" | cut -d : -f 1)
+  echo "$(head -n $((ln + before)) "$2")" > "$2"
+}
+
+prepend() {
+  local data=$(cat "$2")
+  echo "$1" > "$2"
+  echo "$data" >> "$2"
+}
+
+append() {
+  echo "$1" >> "$2"
+}
+
+insert() {
+  local ln=$1
+  local txt=$2
+  local file=$3
+  local total=$(wc -l "$file" | awk '{ print $1 }')
+  top=$(head -n $ln "$file")
+  bot=$(tail -n $((total - ln)) "$file")
+  join "$txt" "$file"
+}
+
+replace_line() {
+  local n=$1
+  local txt=$2
+  local file=$3
+  local data=$(awk 'NR=='$n' {$0="'"${txt}"'"} 1' $file)
+  echo "$data" > "$file"
+}
+
+replace_printf() {
+  local file=$1
+  prepend "#define DO_NOTHING(...) (__VA_ARGS__)" $file
+  sed -i 's/fprintf/DO_NOTHING/g' $file
+  sed -i 's/printf/DO_NOTHING/g' $file
+}
+
+drop_printf() {
+  local file=$1
+  sed -i 's/^\( *\)DO_NOTHING(.*);$/\10;/g' $file
+}
+
+if ! test -d cuckoo; then
+  git clone https://github.com/tromp/cuckoo
+  pushd cuckoo
+  git checkout 9b8e02f1667a479fd40980a8bed55208125aa603
+  popd
+fi
+rm -rf src/tromp
+cp -r cuckoo/src src/tromp
+echo '*' > src/tromp/.gitignore
+
+#
+# Mean miner CUDA
+#
+
+# Duplicate symbols.
+sed -i 's/^\(int nonce_cmp(\)/static \1/g' $meancu
+
+# Duplicate class names.
+sed -i 's/solver_ctx/meancu_solver_ctx/g' $meancu
+sed -i 's/edgetrimmer/meancu_edgetrimmer/g' $meancu
+sed -i 's/indexer/meancu_indexer/g' $meancu
+sed -i 's/twice_set/meancu_twice_set/g' $meancu
+sed -i 's/\<zbucket\>/meancu_zbucket/g' $meancu
+sed -i 's/\<twostagetpb\>/meancu_twostagetpb/g' $meancu
+sed -i 's/\<trimparams\>/meancu_trimparams/g' $meancu
+
+# Fix leak.
+splice_after \
+  '^  ~meancu_edgetrimmer() {' \
+  '    checkCudaErrors(cudaFree(dt));' \
+  $meancu
+
+# Only include lines before main().
+drop_after '^int main(' $meancu -6
+
+#
+# Lean miner CUDA (note: insane)
+#
+
+check_errors=$(
+  echo ''
+  echo '#define freeCudaAllocs() \'
+  echo '  do { \'
+  echo '    if (ctx.alive.bits) cudaFree(ctx.alive.bits); \'
+  echo '    if (ctx.nonleaf.bits) cudaFree(ctx.nonleaf.bits); \'
+  echo '    if (device_ctx) cudaFree(device_ctx);\'
+  echo '  } while (0)'
+  echo ''
+  echo '#define checkCudaErrors(action) \'
+  echo '  do { \'
+  echo '    cudaError_t c = (action); \'
+  echo '    if (c != cudaSuccess) { \'
+  echo '      int32_t code = (int32_t)c; \'
+  echo '      if (code == 0) code = 1; \'
+  echo '      if (code < 0) code = -code; \'
+  echo '      freeCudaAllocs(); \'
+  echo '      return -code; \'
+  echo '    } \'
+  echo '  } while (0)'
+  echo ' '
+)
+
+main=$(
+  echo '#include <stdbool.h>'
+  echo '#include "../common.h"'
+  echo ''
+  echo 'static int32_t lean_run('
+  echo '  bool *running',
+  echo '  uint32_t nthreads,'
+  echo '  uint32_t trims,'
+  echo '  uint32_t tpb,'
+  echo '  uint32_t nonce,'
+  echo '  uint32_t range,'
+  echo '  uint8_t *hdr,'
+  echo '  size_t hdrlen,'
+  echo '  uint8_t *target,'
+  echo '  uint8_t *solution,'
+  echo '  uint32_t *result',
+  echo '  bool *match'
+  echo ') {'
+  echo '  int argc = 0;'
+  echo '  char *argv[1] = { NULL };'
+  echo '  uint8_t hash[32];'
+  echo '  uint8_t chash[32];'
+  echo '  uint32_t sol[PROOFSIZE];'
+  echo '  bool has_sol = false;'
+  echo '  uint32_t ononce = nonce;'
+  echo '  memset(hash, 0xff, 32);'
+)
+
+create_ctx=$(
+  echo '  ctx.alive.bits = NULL;'
+  echo '  ctx.nonleaf.bits = NULL;'
+  echo '  ctx.nonleaf.bits = NULL;'
+  echo ''
+  echo '  cuckoo_ctx *device_ctx = NULL;'
+)
+
+loop=$(
+  echo ''
+  echo '  for (uint32_t r = 0; r < range; r++) {'
+  echo '    if (!*running)'
+  echo '      break;'
+  echo ' '
+)
+
+check_bits=$(
+  echo ''
+  echo '    if (!bits) {'
+  echo '      freeCudaAllocs();'
+  echo '      return HSK_ENOMEM;'
+  echo '    }'
+  echo ''
+  echo '    if (!*running) {'
+  echo '      free(bits);'
+  echo '      freeCudaAllocs();'
+  echo '      return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+  echo '    }'
+  echo ' '
+)
+
+check_load=$(
+  echo '      free(bits);'
+  echo '      freeCudaAllocs();'
+  echo '      return HSK_EMAXLOAD;'
+)
+
+check_path=$(
+  echo ''
+  echo '          if ((int32_t)nu == -1 || (int32_t)nv == -1) {'
+  echo '            delete &cuckoo;'
+  echo '            free(bits);'
+  echo '            freeCudaAllocs();'
+  echo '            return HSK_EBADPATH;'
+  echo '          }'
+  echo ' '
+)
+
+check=$(
+  echo ''
+  echo '              for (int32_t i = 0; i < PROOFSIZE; i++) {'
+  echo '                if (sol[i] >= EASINESS)'
+  echo '                  goto out;'
+  echo '              }'
+  echo ''
+  echo '              hsk_hash_solution(sol, chash);'
+  echo ''
+  echo '              if (memcmp(chash, hash, 32) <= 0) {'
+  echo '                *result = ononce + r;'
+  echo '                for (int32_t i = 0; i < PROOFSIZE; i++)'
+  echo '                  hsk_write_u32(&solution[i * 4], sol[i]);'
+  echo '                memcpy(hash, chash, 32);'
+  echo '                has_sol = true;'
+  echo '              }'
+  echo ''
+  echo '              if (memcmp(chash, target, 32) <= 0) {'
+  echo '                *match = true;'
+  echo '                delete &cuckoo;'
+  echo '                free(bits);'
+  echo '                freeCudaAllocs();'
+  echo '                return HSK_SUCCESS;'
+  echo '              }'
+  echo ''
+  echo 'out:'
+  echo '              if (!*running) {'
+  echo '                delete &cuckoo;'
+  echo '                free(bits);'
+  echo '                freeCudaAllocs();'
+  echo '                return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+  echo '              }'
+  echo ' '
+)
+
+loop_end=$(
+  echo ''
+  echo '    delete &cuckoo;'
+  echo '    free(bits);'
+  echo '  }'
+)
+
+done=$(
+  echo ''
+  echo '  freeCudaAllocs();'
+  echo ''
+  echo '  return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+)
+
+# Add some placeholders to make things easier.
+replace_line 367 'EXIT_PLACEHOLDER' $leancu
+replace_line 425 'LOOP_END_PLACEHOLDER' $leancu
+
+# Instead of aborting, return an error.
+splice '^#define checkCudaErrors' "$check_errors" $leancu
+
+# Remove unnecessary def.
+sed -i 's/^#define HEADERLEN 80//g' $leancu
+
+# Allow setheadernonce to accept a size.
+sed -i \
+  's/^  \(void setheadernonce(char\* headernonce,\)/  \1 uint32_t len,/g' \
+  $leancu
+sed -i 's/HEADERLEN/len/g' $leancu
+sed -i \
+  's/^\(    ctx.setheadernonce\)(headernonce,/\1((char *)hdr, hdrlen,/g' \
+  $leancu
+
+# Have path() return an error instead of aborting.
+sed -i 's/^\(      \)exit(0);/\1return (u32)-1;/g' $leancu
+
+# Replace the main function with our own.
+splice '^int main(' "$main" $leancu
+
+# Remove unnecessary main() variables.
+sed -i 's/^  int nthreads = 16384;//g' $leancu
+sed -i 's/^  int trims   = 32;//g' $leancu
+sed -i 's/^  int tpb = 0;//g' $leancu
+sed -i 's/^  int nonce = 0;//g' $leancu
+sed -i 's/^  int range = 1;//g' $leancu
+sed -i 's/^  char headernonce\[len\];//g' $leancu
+sed -i 's/^  u32 hdrlen = strlen(header);//g' $leancu
+sed -i 's/^  memcpy(headernonce, header, hdrlen);//g' $leancu
+sed -i 's/^  memset(headernonce+hdrlen, .*$//g' $leancu
+sed -i 's/^  cuckoo_ctx \*device_ctx;//g' $leancu
+
+# Initialize properties on cuckoo_ctx.
+splice_after '^  cuckoo_ctx ctx(nthreads);' "$create_ctx" $leancu
+
+# Return an error on failed allocation.
+splice '^    assert(bits != 0);' "$check_bits" $leancu
+
+# Return an error if load >= 90.
+splice '^EXIT_PLACEHOLDER' "$check_load" $leancu
+
+# We use an _unsigned_ range!
+splice '^  for (int r = 0;' "$loop" $leancu
+
+# Add a check to see if path() error'd.
+splice_before '^          if (us\[nu\] == vs\[nv\]) {' "$check_path" $leancu
+
+# Write to the `sol` array instead of printing.
+sed -i 's/^\( *\)printf(" %jx", (uintmax_t)nce);/\1sol[n] = nce;/g' $leancu
+
+# Replace the solution "check" with our own that returns on target match.
+splice_after '^              assert(n==PROOFSIZE);' "$check" $leancu
+
+# Free up bits at the end of the loop.
+splice '^LOOP_END_PLACEHOLDER' "$loop_end" $leancu
+
+# Finally, add better return behavior.
+sed -i 's/^  checkCudaErrors(cudaFree(ctx.alive.bits));//g' $leancu
+sed -i 's/^  checkCudaErrors(cudaFree(ctx.nonleaf.bits));//g' $leancu
+splice '^  return 0;' "$done" $leancu
+
+# Duplicate symbols.
+sed -i 's/^\(__device__ node_t dipnode\)/static \1/g' $leancu
+sed -i 's/\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leancu
+
+# Duplicate class names.
+sed -i 's/cuckoo_ctx/leancu_cuckoo_ctx/g' $leancu
+sed -i 's/cuckoo_hash/leancu_cuckoo_hash/g' $leancu
+sed -i 's/shrinkingset/leancu_shrinkingset/g' $leancu
+sed -i 's/twice_set/leancu_twice_set/g' $leancu
+
+#
+# Cuckoo
+#
+
+# Add easiness parameter.
+ease=$(
+  echo '#ifndef EASE'
+  echo '#define EASE 50'
+  echo '#endif'
+  echo '#define EASINESS \'
+  echo '  ((uint32_t)(((uint64_t)EASE * (NEDGES * 2)) / 100))'
+)
+splice_after '^#define EDGEMASK' "$ease" $cuckooh
+sed -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
+
+# Error on > 32 bytes
+sed -i 's/^typedef u64 node_t;/#error "EDGEBITS too high."/g' $cuckooh
+
+# Duplicate symbols.
+sed -i 's/^\(const char \*errstr\[\] =\)/static \1/g' $cuckooh
+sed -i 's/^\(edge_t _sipnode(\)/static \1/g' $cuckooh
+sed -i 's/^\(node_t sipnode(\)/static \1/g' $cuckooh
+sed -i 's/^\(int verify(\)/static \1/g' $cuckooh
+sed -i 's/^\(void setheader(\)/static \1/g' $cuckooh
+
+# Remove errstr, we don't need it.
+sed -i 's/^static const char \*errstr\[\] =.*$//g' $cuckooh
+
+#
+# Siphash
+#
+
+# Duplicate symbols.
+sed -i 's/^\(void setkeys(\)/static \1/g' $siphashh
+sed -i 's/^\(u64 siphash24(\)/static \1/g' $siphashh
+sed -i 's/^\(__device__ node_t dipnode\)/static \1/g' $siphashcuh
+
+#
+# SiphashxN
+#
+
+# Duplicate symbols.
+sed -i 's/\(void siphash24x4(\)/static \1/g' $siphashxnh
+sed -i 's/\(void siphash24x8(\)/static \1/g' $siphashxnh
+sed -i 's/\(void siphash24x16(\)/static \1/g' $siphashxnh
+sed -i 's/\(void siphash24xN(\)/static \1/g' $siphashxnh
+
+#
+# Lean miner
+#
+
+check=$(
+  echo '          if (ctx->nsols == ctx->maxsols) {'
+  echo '            pthread_exit(NULL);'
+  echo '            return 0;'
+  echo '          }'
+)
+
+# Break once we hit max solutions.
+splice_after '^ \+ctx->solution(us, nu, vs, nv);' "$check" $leanhpp
+
+# Duplicate symbols.
+sed -i 's/^\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leanhpp
+sed -i 's/^\(void \*worker(void \*vp) {\)/static \1/g' $leanhpp
+sed -i 's/^\(void barrier(pthread_barrier_t \*barry) {\)/static \1/g' $leanhpp
+
+# Duplicate class names.
+sed -i 's/cuckoo_ctx/lean_cuckoo_ctx/g' $leanhpp
+sed -i 's/cuckoo_hash/lean_cuckoo_hash/g' $leanhpp
+sed -i 's/shrinkingset/lean_shrinkingset/g' $leanhpp
+sed -i 's/twice_set/lean_twice_set/g' $leanhpp
+sed -i 's/thread_ctx/lean_thread_ctx/g' $leanhpp
+
+# Checking for running-ness.
+run_check=$(
+  echo '      if (!*tp->running) {'
+  echo '        pthread_exit(NULL);'
+  echo '        return 0;'
+  echo '      }'
+)
+
+splice_before '^} lean_thread_ctx;' 'bool *running;' $leanhpp
+splice_after '^      u32 ffs = __builtin_ffsll(alive64);' "$run_check" $leanhpp
+splice_after '^      for (u32 part = 0;' "$run_check" $leanhpp
+
+#
+# Mean miner
+#
+
+# Fix leak.
+insert 1054 '      delete[] threads;' $meanhpp
+
+# Move matchworker def.
+sed -i 's/^ \+void \*matchworker(void \*vp);//g' $meanhpp
+splice_after '^} match_ctx;' 'static void *matchworker(void *vp);' $meanhpp
+
+# Duplicate symbols.
+sed -i 's/^\(int nonce_cmp(\)/static \1/g' $meanhpp
+sed -i 's/^\(void \*matchworker(void \*vp) {\)/static \1/g' $meanhpp
+
+# Duplicate class names.
+sed -i 's/solver_ctx/mean_solver_ctx/g' $meanhpp
+sed -i 's/edgetrimmer/mean_edgetrimmer/g' $meanhpp
+sed -i 's/indexer/mean_indexer/g' $meanhpp
+sed -i 's/thread_ctx/mean_thread_ctx/g' $meanhpp
+sed -i 's/match_ctx/mean_match_ctx/g' $meanhpp
+sed -i 's/\<zbucket\>/mean_zbucket/g' $meanhpp
+
+#
+# Simple Miner
+#
+
+check=$(
+  echo '        if (len == PROOFSIZE) {'
+  echo '          solution(sol, us, nu, vs, nv);'
+  echo '          return true;'
+  echo '        }'
+)
+
+sol=$(
+  echo '        if (PROOFSIZE > 2)'
+  echo '          cycle.erase(e);'
+  echo '        sol[n++] = nonce;'
+)
+
+end=$(
+  echo '    return false;'
+  echo '  }'
+)
+
+# Mark some placeholders.
+replace_line 108 'END_PLACEHOLDER' $simplecpp
+
+# Include some headers.
+prepend '#include <stdbool.h>' $simplecpp
+splice_after '#include <set>' '#include "../common.h"' $simplecpp
+
+# Duplicate class names.
+sed -i 's/cuckoo_ctx/simple_cuckoo_ctx/g' $simplecpp
+
+# Make solution() actually mutate a solution vector.
+sed -i 's/void solution(/void solution(u32 *sol, /g' $simplecpp
+splice '^        cycle.erase(e);' "$sol" $simplecpp
+
+# Make solve() accept and return a solution vector.
+sed -i 's/void solve(/bool solve(u32 *sol/g' $simplecpp
+sed -i 's/^        if (len == PROOFSIZE)//g' $simplecpp
+splice '^          solution(us, nu, vs, nv);' "$check" $simplecpp
+splice '^END_PLACEHOLDER' "$end" $simplecpp
+
+# Drop the main function.
+drop_after '^int main(' $simplecpp -4
+
+#
+# Remove all printf calls
+#
+
+replace_printf $meancu
+replace_printf $leancu
+replace_printf $meanhpp
+replace_printf $leanhpp
+replace_printf $simplecpp
+
+drop_printf $meancu
+drop_printf $leancu
+drop_printf $meanhpp
+drop_printf $leanhpp
+drop_printf $simplecpp
