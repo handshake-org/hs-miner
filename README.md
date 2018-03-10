@@ -47,6 +47,14 @@ if (miner.hasCUDA())
 console.log('CUDA devices:');
 console.log(miner.getDevices());
 
+// This mutates the last 4 bytes of the
+// buffer to increment a 32 bit nonce.
+// The header size _must_ be a multiple
+// of 4. This means the last 4 bytes of
+// a handshake header's 20 byte nonce
+// are used as the "regular nonce",
+// whereas the first 16 bytes are the
+// "extra nonces".
 const [sol, nonce, match] = async miner.mineAsync(hdr, {
   backend: 'mean-cuda',
   nonce: 0,
@@ -66,9 +74,14 @@ if (!sol) {
 
 if (!match) {
   console.log('A solution was found, but it did not meet the target.');
+
   const hash = miner.blake2b(sol);
-  const diff = miner.toDifficulty(hash);
-  console.log('Best share: %d (%d).', diff, nonce);
+  const share = miner.toShare(hash);
+
+  // Log the best share (note: we could submit
+  // the solution+nonce to a mining pool!).
+  console.log('Best share: %d (%d).', share, nonce);
+
   // Now we should try again by changing
   // the first 16 bytes of the header nonce.
   return;
@@ -78,7 +91,6 @@ console.log('Solution:');
 console.log(miner.toArray(sol));
 console.log('Nonce: %d', nonce);
 console.log('Match: %s', match);
-
 ```
 
 If `match` is not true, this means there was a solution (possibly many), but
@@ -100,7 +112,7 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 - `miner.stopAll()` - Stop all running jobs.
 - `miner.verify(hdr, sol, target?)` - Verify a to-be-solved header (sync).
 - `miner.blake2b(data, enc)` - Hash a piece of data with blake2b.
-- `miner.isCuda(backend)` - Test whether a backend is a CUDA backend.
+- `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
 - `miner.getEdgeBits()` - Get number of edge bits (compile time flag).
 - `miner.getProofSize()` - Get proof size (compile time flag).
 - `miner.getEase()` - Get ease (compile time flag).
@@ -124,6 +136,7 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 - `miner.toTarget(bits)` - Convert mantissa to big endian target.
 - `miner.toDouble(target)` - Convert a big endian target to a double.
 - `miner.toDifficulty(target)` - Convert target/hash to a difficulty/share.
+- `miner.toShare(hash)` - Alias of `toDifficulty`.
 
 ### Constants
 
@@ -185,6 +198,107 @@ into each one to figure out what reasonable values are and how they work.
 For CUDA support, CUDA must be installed in either `/opt/cuda` or
 `/usr/local/cuda` when running the build scripts.
 
+This can be modified with the `CUDA_PREFIX` environment variable:
+
+``` bash
+$ CUDA_PREFIX=/path/to/cuda ./scripts/rebuild
+```
+
+## Installation
+
+NodeJS installation guide:
+https://nodejs.org/en/download/package-manager/
+
+If you're on an OS without native NVIDIA packages, drivers can be installed
+from: https://www.nvidia.com/Download/Find.aspx
+
+CUDA is available from NVIDIA's download page:
+https://developer.nvidia.com/cuda-downloads
+
+### Debian & Ubuntu
+
+``` bash
+$ sudo apt-get install linux-headers-$(uname -r)
+$ sudo apt-get install build-essential
+
+# Install latest NVIDIA drivers
+$ sudo add-apt-repository ppa:graphics-drivers/ppa
+$ sudo apt update
+$ sudo apt install nvidia-390
+
+# Install CUDA
+# Pick out your installation: https://developer.nvidia.com/cuda-downloads
+$ wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1704/x86_64/cuda-repo-ubuntu1704_9.1.85-1_amd64.deb
+$ sudo dpkg -i cuda-repo-ubuntu1704_9.1.85-1_amd64.deb
+$ sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1704/x86_64/7fa2af80.pub
+$ sudo apt-get update
+$ sudo apt-get install cuda
+
+# Install the latest node.js
+$ curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
+$ sudo apt-get install nodejs
+
+# Install git
+$ sudo apt-get install git
+
+$ npm install hsk-miner
+```
+
+### RHEL & Fedora
+
+Follow this installation guide for nvidia drivers:
+https://www.if-not-true-then-false.com/2015/fedora-nvidia-guide/
+
+This also looks promising:
+https://negativo17.org/nvidia-driver/
+
+#### Install CUDA (RHEL)
+
+``` bash
+# Pick out your installation: https://developer.nvidia.com/cuda-downloads
+$ wget http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-9.1.85-1.x86_64.rpm
+$ sudo rpm -i cuda-repo-rhel7-9.1.85-1.x86_64.rpm`
+$ sudo yum clean all
+$ sudo yum install cuda
+```
+
+#### Install CUDA (Fedora)
+
+``` bash
+# Pick out your installation: https://developer.nvidia.com/cuda-downloads
+$ wget http://developer.download.nvidia.com/compute/cuda/repos/fedora25/x86_64/cuda-repo-fedora25-9.1.85-1.x86_64.rpm
+$ sudo rpm -i cuda-repo-fedora25-9.1.85-1.x86_64.rpm
+$ sudo dnf clean all
+$ sudo dnf install cuda
+```
+
+#### Install node.js & hsk-miner (Both)
+
+``` bash
+$ curl --silent --location https://rpm.nodesource.com/setup_9.x | sudo bash -
+$ sudo yum install nodejs gcc-c++ make git
+$ npm install hsk-miner
+```
+
+### Arch Linux
+
+``` bash
+$ sudo pacman -S nodejs npm git nvidia nvidia-utils nvidia-settings cuda
+$ npm install hsk-miner
+```
+
+### OSX
+
+``` bash
+$ brew install node git coreutils perl grep gnu-sed gawk
+$ brew cask install cuda
+$ npm install hsk-miner
+```
+
+### Windows
+
+TODO
+
 ## Contribution and License Agreement
 
 If you contribute code to this project, you are implicitly allowing your code
@@ -196,6 +310,25 @@ all code is your original work. `</legalese>`
 - Copyright (c) 2018, Christopher Jeffrey (MIT License).
 
 See LICENSE for more info.
+
+### License Notes
+
+John Tromp's mining code is released under the "Fair Mining License" which
+requires miners to pay coin developers a fee. This is done to discourage ICOs.
+
+Handshake is not an ICO: it does not take money from a public sale and 100% of
+the money given by accredited investors is donated to open source non-profits.
+
+We do not believe it is fair to require miners to have to pay developers. This
+being the case, we chose to avoid redistributing any of Tromp's code in this
+repository or package. Precompiled binaries will also never be distributed for
+hsk-miner. As a result of all of this, Tromp's license will __not__ be included
+here. Nontheless, full credit goes to Mr. Tromp for his brilliant PoW
+algorithm.
+
+Any other implementations of Cuckoo Cycle found in Handshake projects (hskd &
+libhsk) are hand-written. They follow the logic of Tromp's code, but are clean
+reimplementations (one in javascript and the other in C).
 
 [1]: https://github.com/tromp
 [2]: https://github.com/tromp/cuckoo

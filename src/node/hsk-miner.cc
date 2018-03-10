@@ -173,25 +173,19 @@ get_miner_func(const char *backend, bool *is_cuda) {
   if (is_cuda)
     *is_cuda = false;
 
-  if (strcmp(backend, "mean-cuda") == 0) {
 #ifdef HSK_HAS_CUDA
+  if (strcmp(backend, "mean-cuda") == 0) {
     if (is_cuda)
       *is_cuda = true;
     return hsk_mean_cuda_run;
-#else
-    return NULL;
-#endif
   }
 
   if (strcmp(backend, "lean-cuda") == 0) {
-#ifdef HSK_HAS_CUDA
     if (is_cuda)
       *is_cuda = true;
     return hsk_lean_cuda_run;
-#else
-    return NULL;
-#endif
   }
+#endif
 
   if (strcmp(backend, "mean") == 0)
     return hsk_mean_run;

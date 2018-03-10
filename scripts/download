@@ -24,6 +24,22 @@ dir=$(dirname "$file")
 
 cd ${dir}/..
 
+SED=sed
+AWK=awk
+GREP=grep
+
+if uname | grep -i 'darwin' > /dev/null; then
+  if test ! -x /usr/local/bin/gsed \
+    || test ! -x /usr/local/bin/gawk \
+    || test ! -x /usr/local/bin/ggrep; then
+    echo 'OSX requires GNU sed, awk and grep!' 2>& 1
+    exit 1
+  fi
+  SED=/usr/local/bin/gsed
+  AWK=/usr/local/bin/gawk
+  GREP=/usr/local/bin/ggrep
+fi
+
 meancu=src/tromp/mean_miner.cu
 leancu=src/tromp/lean_miner.cu
 meanhpp=src/tromp/mean_miner.hpp
@@ -35,8 +51,8 @@ siphashcuh=src/tromp/siphash.cuh
 siphashxnh=src/tromp/siphashxN.h
 
 split() {
-  local total=$(wc -l "$2" | awk '{ print $1 }')
-  local ln=$(cat "$2" | grep -n "$1" | cut -d : -f 1)
+  local total=$(wc -l "$2" | $AWK '{ print $1 }')
+  local ln=$(cat "$2" | $GREP -n "$1" | cut -d : -f 1)
   local i=$3
   local j=$4
 
@@ -68,7 +84,7 @@ splice_after() {
 drop_after() {
   local before=0
   test -n "$3" && before=$3
-  local ln=$(cat "$2" | grep -n "$1" | cut -d : -f 1)
+  local ln=$(cat "$2" | $GREP -n "$1" | cut -d : -f 1)
   echo "$(head -n $((ln + before)) "$2")" > "$2"
 }
 
@@ -86,7 +102,7 @@ insert() {
   local ln=$1
   local txt=$2
   local file=$3
-  local total=$(wc -l "$file" | awk '{ print $1 }')
+  local total=$(wc -l "$file" | $AWK '{ print $1 }')
   top=$(head -n $ln "$file")
   bot=$(tail -n $((total - ln)) "$file")
   join "$txt" "$file"
@@ -96,20 +112,20 @@ replace_line() {
   local n=$1
   local txt=$2
   local file=$3
-  local data=$(awk 'NR=='$n' {$0="'"${txt}"'"} 1' $file)
+  local data=$($AWK 'NR=='$n' {$0="'"${txt}"'"} 1' $file)
   echo "$data" > "$file"
 }
 
 replace_printf() {
   local file=$1
   prepend "#define DO_NOTHING(...) (__VA_ARGS__)" $file
-  sed -i 's/fprintf/DO_NOTHING/g' $file
-  sed -i 's/printf/DO_NOTHING/g' $file
+  $SED -i 's/fprintf/DO_NOTHING/g' $file
+  $SED -i 's/printf/DO_NOTHING/g' $file
 }
 
 drop_printf() {
   local file=$1
-  sed -i 's/^\( *\)DO_NOTHING(.*);$/\10;/g' $file
+  $SED -i 's/^\( *\)DO_NOTHING(.*);$/\10;/g' $file
 }
 
 if ! test -d cuckoo; then
@@ -127,16 +143,16 @@ echo '*' > src/tromp/.gitignore
 #
 
 # Duplicate symbols.
-sed -i 's/^\(int nonce_cmp(\)/static \1/g' $meancu
+$SED -i 's/^\(int nonce_cmp(\)/static \1/g' $meancu
 
 # Duplicate class names.
-sed -i 's/solver_ctx/meancu_solver_ctx/g' $meancu
-sed -i 's/edgetrimmer/meancu_edgetrimmer/g' $meancu
-sed -i 's/indexer/meancu_indexer/g' $meancu
-sed -i 's/twice_set/meancu_twice_set/g' $meancu
-sed -i 's/\<zbucket\>/meancu_zbucket/g' $meancu
-sed -i 's/\<twostagetpb\>/meancu_twostagetpb/g' $meancu
-sed -i 's/\<trimparams\>/meancu_trimparams/g' $meancu
+$SED -i 's/solver_ctx/meancu_solver_ctx/g' $meancu
+$SED -i 's/edgetrimmer/meancu_edgetrimmer/g' $meancu
+$SED -i 's/indexer/meancu_indexer/g' $meancu
+$SED -i 's/twice_set/meancu_twice_set/g' $meancu
+$SED -i 's/\<zbucket\>/meancu_zbucket/g' $meancu
+$SED -i 's/\<twostagetpb\>/meancu_twostagetpb/g' $meancu
+$SED -i 's/\<trimparams\>/meancu_trimparams/g' $meancu
 
 # Fix leak.
 splice_after \
@@ -307,34 +323,34 @@ replace_line 425 'LOOP_END_PLACEHOLDER' $leancu
 splice '^#define checkCudaErrors' "$check_errors" $leancu
 
 # Remove unnecessary def.
-sed -i 's/^#define HEADERLEN 80//g' $leancu
+$SED -i 's/^#define HEADERLEN 80//g' $leancu
 
 # Allow setheadernonce to accept a size.
-sed -i \
+$SED -i \
   's/^  \(void setheadernonce(char\* headernonce,\)/  \1 uint32_t len,/g' \
   $leancu
-sed -i 's/HEADERLEN/len/g' $leancu
-sed -i \
+$SED -i 's/HEADERLEN/len/g' $leancu
+$SED -i \
   's/^\(    ctx.setheadernonce\)(headernonce,/\1((char *)hdr, hdrlen,/g' \
   $leancu
 
 # Have path() return an error instead of aborting.
-sed -i 's/^\(      \)exit(0);/\1return (u32)-1;/g' $leancu
+$SED -i 's/^\(      \)exit(0);/\1return (u32)-1;/g' $leancu
 
 # Replace the main function with our own.
 splice '^int main(' "$main" $leancu
 
 # Remove unnecessary main() variables.
-sed -i 's/^  int nthreads = 16384;//g' $leancu
-sed -i 's/^  int trims   = 32;//g' $leancu
-sed -i 's/^  int tpb = 0;//g' $leancu
-sed -i 's/^  int nonce = 0;//g' $leancu
-sed -i 's/^  int range = 1;//g' $leancu
-sed -i 's/^  char headernonce\[len\];//g' $leancu
-sed -i 's/^  u32 hdrlen = strlen(header);//g' $leancu
-sed -i 's/^  memcpy(headernonce, header, hdrlen);//g' $leancu
-sed -i 's/^  memset(headernonce+hdrlen, .*$//g' $leancu
-sed -i 's/^  cuckoo_ctx \*device_ctx;//g' $leancu
+$SED -i 's/^  int nthreads = 16384;//g' $leancu
+$SED -i 's/^  int trims   = 32;//g' $leancu
+$SED -i 's/^  int tpb = 0;//g' $leancu
+$SED -i 's/^  int nonce = 0;//g' $leancu
+$SED -i 's/^  int range = 1;//g' $leancu
+$SED -i 's/^  char headernonce\[len\];//g' $leancu
+$SED -i 's/^  u32 hdrlen = strlen(header);//g' $leancu
+$SED -i 's/^  memcpy(headernonce, header, hdrlen);//g' $leancu
+$SED -i 's/^  memset(headernonce+hdrlen, .*$//g' $leancu
+$SED -i 's/^  cuckoo_ctx \*device_ctx;//g' $leancu
 
 # Initialize properties on cuckoo_ctx.
 splice_after '^  cuckoo_ctx ctx(nthreads);' "$create_ctx" $leancu
@@ -352,7 +368,7 @@ splice '^  for (int r = 0;' "$loop" $leancu
 splice_before '^          if (us\[nu\] == vs\[nv\]) {' "$check_path" $leancu
 
 # Write to the `sol` array instead of printing.
-sed -i 's/^\( *\)printf(" %jx", (uintmax_t)nce);/\1sol[n] = nce;/g' $leancu
+$SED -i 's/^\( *\)printf(" %jx", (uintmax_t)nce);/\1sol[n] = nce;/g' $leancu
 
 # Replace the solution "check" with our own that returns on target match.
 splice_after '^              assert(n==PROOFSIZE);' "$check" $leancu
@@ -361,19 +377,19 @@ splice_after '^              assert(n==PROOFSIZE);' "$check" $leancu
 splice '^LOOP_END_PLACEHOLDER' "$loop_end" $leancu
 
 # Finally, add better return behavior.
-sed -i 's/^  checkCudaErrors(cudaFree(ctx.alive.bits));//g' $leancu
-sed -i 's/^  checkCudaErrors(cudaFree(ctx.nonleaf.bits));//g' $leancu
+$SED -i 's/^  checkCudaErrors(cudaFree(ctx.alive.bits));//g' $leancu
+$SED -i 's/^  checkCudaErrors(cudaFree(ctx.nonleaf.bits));//g' $leancu
 splice '^  return 0;' "$done" $leancu
 
 # Duplicate symbols.
-sed -i 's/^\(__device__ node_t dipnode\)/static \1/g' $leancu
-sed -i 's/\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leancu
+$SED -i 's/^\(__device__ node_t dipnode\)/static \1/g' $leancu
+$SED -i 's/\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leancu
 
 # Duplicate class names.
-sed -i 's/cuckoo_ctx/leancu_cuckoo_ctx/g' $leancu
-sed -i 's/cuckoo_hash/leancu_cuckoo_hash/g' $leancu
-sed -i 's/shrinkingset/leancu_shrinkingset/g' $leancu
-sed -i 's/twice_set/leancu_twice_set/g' $leancu
+$SED -i 's/cuckoo_ctx/leancu_cuckoo_ctx/g' $leancu
+$SED -i 's/cuckoo_hash/leancu_cuckoo_hash/g' $leancu
+$SED -i 's/shrinkingset/leancu_shrinkingset/g' $leancu
+$SED -i 's/twice_set/leancu_twice_set/g' $leancu
 
 #
 # Cuckoo
@@ -388,39 +404,39 @@ ease=$(
   echo '  ((uint32_t)(((uint64_t)EASE * (NEDGES * 2)) / 100))'
 )
 splice_after '^#define EDGEMASK' "$ease" $cuckooh
-sed -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
+$SED -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
 
 # Error on > 32 bytes
-sed -i 's/^typedef u64 node_t;/#error "EDGEBITS too high."/g' $cuckooh
+$SED -i 's/^typedef u64 node_t;/#error "EDGEBITS too high."/g' $cuckooh
 
 # Duplicate symbols.
-sed -i 's/^\(const char \*errstr\[\] =\)/static \1/g' $cuckooh
-sed -i 's/^\(edge_t _sipnode(\)/static \1/g' $cuckooh
-sed -i 's/^\(node_t sipnode(\)/static \1/g' $cuckooh
-sed -i 's/^\(int verify(\)/static \1/g' $cuckooh
-sed -i 's/^\(void setheader(\)/static \1/g' $cuckooh
+$SED -i 's/^\(const char \*errstr\[\] =\)/static \1/g' $cuckooh
+$SED -i 's/^\(edge_t _sipnode(\)/static \1/g' $cuckooh
+$SED -i 's/^\(node_t sipnode(\)/static \1/g' $cuckooh
+$SED -i 's/^\(int verify(\)/static \1/g' $cuckooh
+$SED -i 's/^\(void setheader(\)/static \1/g' $cuckooh
 
 # Remove errstr, we don't need it.
-sed -i 's/^static const char \*errstr\[\] =.*$//g' $cuckooh
+$SED -i 's/^static const char \*errstr\[\] =.*$//g' $cuckooh
 
 #
 # Siphash
 #
 
 # Duplicate symbols.
-sed -i 's/^\(void setkeys(\)/static \1/g' $siphashh
-sed -i 's/^\(u64 siphash24(\)/static \1/g' $siphashh
-sed -i 's/^\(__device__ node_t dipnode\)/static \1/g' $siphashcuh
+$SED -i 's/^\(void setkeys(\)/static \1/g' $siphashh
+$SED -i 's/^\(u64 siphash24(\)/static \1/g' $siphashh
+$SED -i 's/^\(__device__ node_t dipnode\)/static \1/g' $siphashcuh
 
 #
 # SiphashxN
 #
 
 # Duplicate symbols.
-sed -i 's/\(void siphash24x4(\)/static \1/g' $siphashxnh
-sed -i 's/\(void siphash24x8(\)/static \1/g' $siphashxnh
-sed -i 's/\(void siphash24x16(\)/static \1/g' $siphashxnh
-sed -i 's/\(void siphash24xN(\)/static \1/g' $siphashxnh
+$SED -i 's/\(void siphash24x4(\)/static \1/g' $siphashxnh
+$SED -i 's/\(void siphash24x8(\)/static \1/g' $siphashxnh
+$SED -i 's/\(void siphash24x16(\)/static \1/g' $siphashxnh
+$SED -i 's/\(void siphash24xN(\)/static \1/g' $siphashxnh
 
 #
 # Lean miner
@@ -437,16 +453,16 @@ check=$(
 splice_after '^ \+ctx->solution(us, nu, vs, nv);' "$check" $leanhpp
 
 # Duplicate symbols.
-sed -i 's/^\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leanhpp
-sed -i 's/^\(void \*worker(void \*vp) {\)/static \1/g' $leanhpp
-sed -i 's/^\(void barrier(pthread_barrier_t \*barry) {\)/static \1/g' $leanhpp
+$SED -i 's/^\(u32 path(cuckoo_hash &cuckoo\)/static \1/g' $leanhpp
+$SED -i 's/^\(void \*worker(void \*vp) {\)/static \1/g' $leanhpp
+$SED -i 's/^\(void barrier(pthread_barrier_t \*barry) {\)/static \1/g' $leanhpp
 
 # Duplicate class names.
-sed -i 's/cuckoo_ctx/lean_cuckoo_ctx/g' $leanhpp
-sed -i 's/cuckoo_hash/lean_cuckoo_hash/g' $leanhpp
-sed -i 's/shrinkingset/lean_shrinkingset/g' $leanhpp
-sed -i 's/twice_set/lean_twice_set/g' $leanhpp
-sed -i 's/thread_ctx/lean_thread_ctx/g' $leanhpp
+$SED -i 's/cuckoo_ctx/lean_cuckoo_ctx/g' $leanhpp
+$SED -i 's/cuckoo_hash/lean_cuckoo_hash/g' $leanhpp
+$SED -i 's/shrinkingset/lean_shrinkingset/g' $leanhpp
+$SED -i 's/twice_set/lean_twice_set/g' $leanhpp
+$SED -i 's/thread_ctx/lean_thread_ctx/g' $leanhpp
 
 # Checking for running-ness.
 run_check=$(
@@ -468,20 +484,20 @@ splice_after '^      for (u32 part = 0;' "$run_check" $leanhpp
 insert 1054 '      delete[] threads;' $meanhpp
 
 # Move matchworker def.
-sed -i 's/^ \+void \*matchworker(void \*vp);//g' $meanhpp
+$SED -i 's/^ \+void \*matchworker(void \*vp);//g' $meanhpp
 splice_after '^} match_ctx;' 'static void *matchworker(void *vp);' $meanhpp
 
 # Duplicate symbols.
-sed -i 's/^\(int nonce_cmp(\)/static \1/g' $meanhpp
-sed -i 's/^\(void \*matchworker(void \*vp) {\)/static \1/g' $meanhpp
+$SED -i 's/^\(int nonce_cmp(\)/static \1/g' $meanhpp
+$SED -i 's/^\(void \*matchworker(void \*vp) {\)/static \1/g' $meanhpp
 
 # Duplicate class names.
-sed -i 's/solver_ctx/mean_solver_ctx/g' $meanhpp
-sed -i 's/edgetrimmer/mean_edgetrimmer/g' $meanhpp
-sed -i 's/indexer/mean_indexer/g' $meanhpp
-sed -i 's/thread_ctx/mean_thread_ctx/g' $meanhpp
-sed -i 's/match_ctx/mean_match_ctx/g' $meanhpp
-sed -i 's/\<zbucket\>/mean_zbucket/g' $meanhpp
+$SED -i 's/solver_ctx/mean_solver_ctx/g' $meanhpp
+$SED -i 's/edgetrimmer/mean_edgetrimmer/g' $meanhpp
+$SED -i 's/indexer/mean_indexer/g' $meanhpp
+$SED -i 's/thread_ctx/mean_thread_ctx/g' $meanhpp
+$SED -i 's/match_ctx/mean_match_ctx/g' $meanhpp
+$SED -i 's/\<zbucket\>/mean_zbucket/g' $meanhpp
 
 #
 # Simple Miner
@@ -513,15 +529,15 @@ prepend '#include <stdbool.h>' $simplecpp
 splice_after '#include <set>' '#include "../common.h"' $simplecpp
 
 # Duplicate class names.
-sed -i 's/cuckoo_ctx/simple_cuckoo_ctx/g' $simplecpp
+$SED -i 's/cuckoo_ctx/simple_cuckoo_ctx/g' $simplecpp
 
 # Make solution() actually mutate a solution vector.
-sed -i 's/void solution(/void solution(u32 *sol, /g' $simplecpp
+$SED -i 's/void solution(/void solution(u32 *sol, /g' $simplecpp
 splice '^        cycle.erase(e);' "$sol" $simplecpp
 
 # Make solve() accept and return a solution vector.
-sed -i 's/void solve(/bool solve(u32 *sol/g' $simplecpp
-sed -i 's/^        if (len == PROOFSIZE)//g' $simplecpp
+$SED -i 's/void solve(/bool solve(u32 *sol/g' $simplecpp
+$SED -i 's/^        if (len == PROOFSIZE)//g' $simplecpp
 splice '^          solution(us, nu, vs, nv);' "$check" $simplecpp
 splice '^END_PLACEHOLDER' "$end" $simplecpp
 

@@ -18,6 +18,12 @@ SIMNET_EASE=50
 
 NETWORK=$(test -n "$HSK_NETWORK" && echo "$HSK_NETWORK" || echo 'main')
 
+SO=so
+
+if uname | grep -i 'darwin' > /dev/null; then
+  SO=dylib
+fi
+
 if test -n "$2"; then
   NETWORK=$2
 fi
@@ -60,7 +66,7 @@ case "$1" in
     if test ! -d "$CUDA_BIN" \
       || test ! -d "$CUDA_LIB" \
       || test ! -x "${NVCC}" \
-      || test ! -e "${CUDA_LIB}/libcudart.so"; then
+      || test ! -e "${CUDA_LIB}/libcudart.${SO}"; then
       echo 0
     else
       echo 1
