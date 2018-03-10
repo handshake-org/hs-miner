@@ -257,7 +257,7 @@ https://negativo17.org/nvidia-driver/
 ``` bash
 # Pick out your installation: https://developer.nvidia.com/cuda-downloads
 $ wget http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-9.1.85-1.x86_64.rpm
-$ sudo rpm -i cuda-repo-rhel7-9.1.85-1.x86_64.rpm`
+$ sudo rpm -i cuda-repo-rhel7-9.1.85-1.x86_64.rpm
 $ sudo yum clean all
 $ sudo yum install cuda
 ```
