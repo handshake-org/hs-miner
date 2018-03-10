@@ -238,8 +238,8 @@ $ sudo apt-get install cuda
 $ curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
 $ sudo apt-get install nodejs
 
-# Install git
-$ sudo apt-get install git
+# Install git & python
+$ sudo apt-get install git python
 
 $ npm install hsk-miner
 ```
@@ -276,21 +276,21 @@ $ sudo dnf install cuda
 
 ``` bash
 $ curl --silent --location https://rpm.nodesource.com/setup_9.x | sudo bash -
-$ sudo yum install nodejs gcc-c++ make git
+$ sudo yum install nodejs gcc-c++ make git python2
 $ npm install hsk-miner
 ```
 
 ### Arch Linux
 
 ``` bash
-$ sudo pacman -S nodejs npm git nvidia nvidia-utils nvidia-settings cuda
+$ sudo pacman -S nodejs npm git nvidia nvidia-utils nvidia-settings cuda python2
 $ npm install hsk-miner
 ```
 
 ### OSX
 
 ``` bash
-$ brew install node git coreutils perl grep gnu-sed gawk
+$ brew install node git coreutils perl grep gnu-sed gawk python2
 $ brew cask install cuda
 $ npm install hsk-miner
 ```
