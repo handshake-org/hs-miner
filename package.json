@@ -31,15 +31,15 @@
   },
   "dependencies": {
     "bindings": "~1.3.0",
-    "nan": "~2.8.0"
+    "nan": "~2.9.2"
   },
   "devDependencies": {
-    "eslint": "^4.14.0",
-    "mocha": "^4.0.1"
+    "eslint": "^4.18.2",
+    "mocha": "^5.0.4"
   },
   "optionalDependencies": {
-    "bcfg": "0.0.0",
-    "brq": "0.0.0"
+    "bcfg": "~0.0.2",
+    "brq": "~0.0.2"
   },
   "engines": {
     "node": ">=7.6.0"

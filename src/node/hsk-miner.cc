@@ -152,7 +152,7 @@ MinerWorker::HandleOKCallback() {
     ret->Set(1, Nan::New<v8::Uint32>(0));
     ret->Set(2, Nan::New<v8::Boolean>(false));
     v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
-    callback->Call(2, argv);
+    callback->Call(2, argv, async_resource);
     return;
   }
 
@@ -165,7 +165,7 @@ MinerWorker::HandleOKCallback() {
 
   v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
 
-  callback->Call(2, argv);
+  callback->Call(2, argv, async_resource);
 }
 
 static hsk_miner_func
