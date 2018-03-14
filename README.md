@@ -55,7 +55,7 @@ console.log(miner.getDevices());
 // are used as the "regular nonce",
 // whereas the first 16 bytes are the
 // "extra nonces".
-const [sol, nonce, match] = async miner.mineAsync(hdr, {
+const [sol, nonce, match] = await miner.mineAsync(hdr, {
   backend: 'mean-cuda',
   nonce: 0,
   range: 0xffffffff,
