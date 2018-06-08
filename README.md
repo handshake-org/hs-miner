@@ -327,7 +327,7 @@ here. Nontheless, full credit goes to Mr. Tromp for his brilliant PoW
 algorithm.
 
 Any other implementations of Cuckoo Cycle found in Handshake projects (hskd &
-libhsk) are hand-written. They follow the logic of Tromp's code, but are clean
+hnsd) are hand-written. They follow the logic of Tromp's code, but are clean
 reimplementations (one in javascript and the other in C).
 
 [1]: https://github.com/tromp
