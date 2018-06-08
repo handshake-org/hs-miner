@@ -69,7 +69,7 @@ if (info)
   hdr = Buffer.alloc(4);
 
 if (target && target.length === 4) {
-  mantissa = target.readUInt32BE(0, true);
+  mantissa = target.readUInt32BE(0);
   target = null;
 }
 
@@ -140,7 +140,7 @@ if (!quiet || info) {
     console.log('Match: %s', match);
   }
 
-  hdr.writeUInt32LE(result, hdr.length - 4, true);
+  hdr.writeUInt32LE(result, hdr.length - 4);
 
   assert.strictEqual(miner.verify(hdr, sol, match ? target : null), 0);
 

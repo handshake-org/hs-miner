@@ -196,7 +196,7 @@ class Miner {
     assert(hdr.length === miner.HDR_SIZE);
     const raw = Buffer.allocUnsafe(hdr.length + 1 + sol.length);
     hdr.copy(raw, 0);
-    raw.writeUInt32LE(nonce, hdr.length - 4, true);
+    raw.writeUInt32LE(nonce >>> 0, hdr.length - 4);
     raw[hdr.length] = sol.length >>> 2;
     sol.copy(raw, hdr.length + 1);
     return raw;
@@ -390,10 +390,10 @@ function increment(hdr, now) {
 function readTime(hdr, off) {
   assert(hdr.length >= off + 8);
 
-  const lo = hdr.readUInt32LE(off, true);
-  const hi = hdr.readUInt16LE(off + 4, true);
+  const lo = hdr.readUInt32LE(off);
+  const hi = hdr.readUInt16LE(off + 4);
 
-  assert(hdr.readUInt16LE(off + 6, true) === 0);
+  assert(hdr.readUInt16LE(off + 6) === 0);
 
   return hi * 0x100000000 + lo;
 }
@@ -435,13 +435,13 @@ function readHeader(hdr) {
   return {
     hash,
     powHash,
-    version: hdr.readUInt32LE(0, true),
+    version: hdr.readUInt32LE(0),
     prevBlock: hdr.toString('hex', 4, 36),
     merkleRoot: hdr.toString('hex', 36, 68),
     witnessRoot: hdr.toString('hex', 68, 100),
     trieRoot: hdr.toString('hex', 100, 132),
     time: readTime(hdr, 132),
-    bits: hdr.readUInt32LE(140, true),
+    bits: hdr.readUInt32LE(140),
     nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE),
     solution
   };
