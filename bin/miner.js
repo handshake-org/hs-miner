@@ -366,13 +366,13 @@ class Miner {
  */
 
 function increment(hdr, now) {
-  const time = readTime(hdr, 132);
+  const time = readTime(hdr, 164);
 
   switch (miner.NETWORK) {
     case 'main':
     case 'regtest':
       if (now > time) {
-        writeTime(hdr, now, 132);
+        writeTime(hdr, now, 164);
         return;
       }
       break;
@@ -439,9 +439,10 @@ function readHeader(hdr) {
     prevBlock: hdr.toString('hex', 4, 36),
     merkleRoot: hdr.toString('hex', 36, 68),
     witnessRoot: hdr.toString('hex', 68, 100),
-    trieRoot: hdr.toString('hex', 100, 132),
-    time: readTime(hdr, 132),
-    bits: hdr.readUInt32LE(140),
+    treeRoot: hdr.toString('hex', 100, 132),
+    reservedRoot: hdr.toString('hex', 132, 164),
+    time: readTime(hdr, 164),
+    bits: hdr.readUInt32LE(172),
     nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE),
     solution
   };
