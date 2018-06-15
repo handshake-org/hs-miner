@@ -64,10 +64,10 @@ if test "$ACTION" != 'test'; then
 fi
 
 if test "$NETWORK" = 'main'; then
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean'
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js mean'
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean-cuda'
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js mean-cuda'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js mean'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean-cuda'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js mean-cuda'
 
   # ssh $SERVER 'time node ~/hsk-miner/bin/hsk-mine -a -m 545259519 -b mean'
   ssh $SERVER 'time node ~/hsk-miner/bin/hsk-mine -a -m 545259519 -b mean-cuda'
@@ -75,10 +75,10 @@ if test "$NETWORK" = 'main'; then
   exit 0
 fi
 
-if test "$NETWORK" = 'testnet'; then
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js simple'
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean'
-  ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean-cuda'
+if test "$NETWORK" = 'simnet'; then
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js simple'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean'
+  # ssh $SERVER 'time node ~/hsk-miner/test/stop-test.js lean-cuda'
 
   ssh $SERVER 'time node ~/hsk-miner/bin/hsk-mine -a -m 545259519 -b simple'
   ssh $SERVER 'time node ~/hsk-miner/bin/hsk-mine -a -m 545259519 -b lean'

@@ -39,7 +39,7 @@ $ hsk-mine [header-hex] [target] [backend] -n [nonce] -r [range]
 const miner = require('hsk-miner');
 
 // Header without the appended solution.
-const hdr = Buffer.alloc(196, 0x00);
+const hdr = Buffer.alloc(164, 0x00);
 
 if (miner.hasCUDA())
   console.log('Mining with cuda support!');
@@ -75,7 +75,7 @@ if (!sol) {
 if (!match) {
   console.log('A solution was found, but it did not meet the target.');
 
-  const hash = miner.blake2b(sol);
+  const hash = miner.sha3(sol);
   const share = miner.toShare(hash);
 
   // Log the best share (note: we could submit
@@ -112,6 +112,7 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 - `miner.stopAll()` - Stop all running jobs.
 - `miner.verify(hdr, sol, target?)` - Verify a to-be-solved header (sync).
 - `miner.blake2b(data, enc)` - Hash a piece of data with blake2b.
+- `miner.sha3(data, enc)` - Hash a piece of data with sha3.
 - `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
 - `miner.getEdgeBits()` - Get number of edge bits (compile time flag).
 - `miner.getProofSize()` - Get proof size (compile time flag).
@@ -149,10 +150,10 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 - `miner.HAS_CUDA` - Whether CUDA support was built.
 - `miner.BACKEND` - Default backend.
 - `miner.TARGET` - Default target.
-- `miner.HDR_SIZE` - Handshake to-be-solved header size (196).
+- `miner.HDR_SIZE` - Handshake to-be-solved header size (164).
 - `miner.NONCE_SIZE` - Total size of nonce (20).
-- `miner.NONCE_START` - Start of nonce position (176).
-- `miner.NONCE_END` - End of extra nonce position (190).
+- `miner.NONCE_START` - Start of nonce position (144).
+- `miner.NONCE_END` - End of extra nonce position (160).
 
 ## Options
 

@@ -163,14 +163,14 @@ class Miner {
     if ((time >>> 0) !== time)
       throw new Error('Bad time.');
 
-    const {witnessRoot} = readHeader(hdr);
+    const {merkleRoot} = readHeader(hdr);
 
     return {
       hdr,
       target,
       height,
       time,
-      root: witnessRoot
+      root: merkleRoot
     };
   }
 
@@ -234,7 +234,7 @@ class Miner {
         return [sol, nonce];
 
       if (sol) {
-        const hash = miner.blake2b(sol, 'hex');
+        const hash = miner.sha3(sol, 'hex');
         this.log('Best share: %s with %d (device=%d)', hash, nonce, i);
       }
     }
@@ -287,7 +287,7 @@ class Miner {
       }
 
       this.log('Found solution: %d %s',
-        nonce, miner.blake2b(sol).toString('hex'));
+        nonce, miner.sha3(sol).toString('hex'));
 
       const raw = this.toBlock(hdr, nonce, sol);
 
@@ -366,13 +366,13 @@ class Miner {
  */
 
 function increment(hdr, now) {
-  const time = readTime(hdr, 164);
+  const time = readTime(hdr, 132);
 
   switch (miner.NETWORK) {
     case 'main':
     case 'regtest':
       if (now > time) {
-        writeTime(hdr, now, 164);
+        writeTime(hdr, now, 132);
         return;
       }
       break;
@@ -403,7 +403,7 @@ function writeTime(hdr, time, off) {
   assert(time >= 0 && time <= 0xffffffffffff);
 
   const lo = time >>> 0;
-  const hi = (time / 0x100000000) >>> 0;
+  const hi = (time * (1 / 0x100000000)) >>> 0;
 
   hdr.writeUInt32LE(lo, off);
   hdr.writeUInt16LE(hi, off + 4);
@@ -425,7 +425,7 @@ function readHeader(hdr) {
 
     hash = miner.blake2b(hdr, 'hex');
     solution = hdr.slice(off, off + size);
-    powHash = miner.blake2b(solution, 'hex');
+    powHash = miner.sha3(solution, 'hex');
 
     solution = solution.toString('hex');
   } else {
@@ -438,11 +438,10 @@ function readHeader(hdr) {
     version: hdr.readUInt32LE(0),
     prevBlock: hdr.toString('hex', 4, 36),
     merkleRoot: hdr.toString('hex', 36, 68),
-    witnessRoot: hdr.toString('hex', 68, 100),
-    treeRoot: hdr.toString('hex', 100, 132),
-    reservedRoot: hdr.toString('hex', 132, 164),
-    time: readTime(hdr, 164),
-    bits: hdr.readUInt32LE(172),
+    treeRoot: hdr.toString('hex', 68, 100),
+    reservedRoot: hdr.toString('hex', 100, 132),
+    time: readTime(hdr, 132),
+    bits: hdr.readUInt32LE(140),
     nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE),
     solution
   };

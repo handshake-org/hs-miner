@@ -13,6 +13,7 @@
     "sources": [
       "./src/node/hsk-miner.cc",
       "./src/tromp/blake2b-ref.c",
+      "./src/sha3/sha3.c",
       "./src/lean.cc",
       "./src/mean.cc",
       "./src/simple.cc",

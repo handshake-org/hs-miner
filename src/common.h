@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tromp/blake2.h"
+#include "sha3/sha3.h"
 
 #ifndef EDGEBITS
 #define EDGEBITS 29
@@ -139,17 +140,17 @@ hsk_lean_cuda_run(
 
 int32_t
 hsk_verify(
-  uint8_t *hdr,
+  const uint8_t *hdr,
   size_t hdr_len,
-  uint8_t *solution,
-  uint8_t *target
+  const uint8_t *solution,
+  const uint8_t *target
 );
 
 int32_t
-hsk_verify_sol(uint8_t *hdr, size_t hdr_len, uint8_t *solution);
+hsk_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution);
 
 static inline uint32_t
-hsk_read_u32(uint8_t *data) {
+hsk_read_u32(const uint8_t *data) {
   uint32_t out;
 #ifdef HSK_LITTLE_ENDIAN
   memcpy(&out, data, 4);
@@ -176,12 +177,22 @@ hsk_write_u32(uint8_t *data, uint32_t num) {
 }
 
 static inline void
-hsk_hash_solution(uint32_t *sol, uint8_t *hash) {
+hsk_pow_hash(const uint8_t *data, size_t data_len, uint8_t *hash) {
+  // Old:
+  // blake2b((void *)hash, 32, (const void *)data, data_len, NULL, 0);
+  hsk_sha3_ctx ctx;
+  hsk_sha3_256_init(&ctx);
+  hsk_sha3_update(&ctx, data, data_len);
+  hsk_sha3_final(&ctx, hash);
+}
+
+static inline void
+hsk_hash_solution(const uint32_t *sol, uint8_t *hash) {
   uint8_t data[PROOFSIZE * 4];
 
   for (int32_t i = 0; i < PROOFSIZE; i++)
     hsk_write_u32(&data[i * 4], sol[i]);
 
-  blake2b((void *)hash, 32, (const void *)data, sizeof(data), 0, 0);
+  hsk_pow_hash(data, sizeof(data), hash);
 }
 #endif

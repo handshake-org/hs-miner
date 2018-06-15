@@ -6,10 +6,10 @@
 
 int32_t
 hsk_verify(
-  uint8_t *hdr,
+  const uint8_t *hdr,
   size_t hdr_len,
-  uint8_t *solution,
-  uint8_t *target
+  const uint8_t *solution,
+  const uint8_t *target
 ) {
   int32_t rc = hsk_verify_sol(hdr, hdr_len, solution);
 
@@ -21,14 +21,7 @@ hsk_verify(
 
   uint8_t hash[32];
 
-  blake2b(
-    (void *)hash,
-    sizeof(hash),
-    (const void *)solution,
-    PROOFSIZE * 4,
-    0,
-    0
-  );
+  hsk_pow_hash(solution, PROOFSIZE * 4, &hash[0]);
 
   if (memcmp(hash, target, 32) > 0)
     return POW_TOO_BIG;
@@ -37,7 +30,7 @@ hsk_verify(
 }
 
 int32_t
-hsk_verify_sol(uint8_t *hdr, size_t hdr_len, uint8_t *solution) {
+hsk_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution) {
   siphash_keys keys;
   uint32_t sol[PROOFSIZE];
 

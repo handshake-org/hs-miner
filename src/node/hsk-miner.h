@@ -11,6 +11,7 @@ NAN_METHOD(stop);
 NAN_METHOD(stop_all);
 NAN_METHOD(verify);
 NAN_METHOD(blake2b);
+NAN_METHOD(sha3);
 NAN_METHOD(get_edge_bits);
 NAN_METHOD(get_proof_size);
 NAN_METHOD(get_ease);

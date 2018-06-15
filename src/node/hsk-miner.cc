@@ -561,9 +561,28 @@ NAN_METHOD(blake2b) {
     sizeof(hash),
     (const void *)data,
     data_len,
-    0,
+    NULL,
     0
   );
+
+  info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
+}
+
+NAN_METHOD(sha3) {
+  if (info.Length() != 1)
+    return Nan::ThrowError("sha3() requires arguments.");
+
+  v8::Local<v8::Object> data_buf = info[0].As<v8::Object>();
+
+  if (!node::Buffer::HasInstance(data_buf))
+    return Nan::ThrowTypeError("`data` must be a buffer.");
+
+  const uint8_t *data = (const uint8_t *)node::Buffer::Data(data_buf);
+  size_t data_len = node::Buffer::Length(data_buf);
+
+  uint8_t hash[32];
+
+  hsk_pow_hash(data, data_len, hash);
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }
@@ -707,6 +726,7 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "stopAll", stop_all);
   Nan::Export(target, "verify", verify);
   Nan::Export(target, "blake2b", blake2b);
+  Nan::Export(target, "sha3", sha3);
   Nan::Export(target, "getEdgeBits", get_edge_bits);
   Nan::Export(target, "getProofSize", get_proof_size);
   Nan::Export(target, "getEase", get_ease);
