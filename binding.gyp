@@ -22,10 +22,8 @@
     "cflags": [
       "-Wall",
       "-Wno-implicit-fallthrough",
-      "-Wno-maybe-uninitialized",
       "-Wno-uninitialized",
       "-Wno-unused-function",
-      "-Wno-cast-function-type",
       "-Wno-unused-value",
       "-Wextra",
       "-O3"
@@ -34,7 +32,9 @@
       "-std=c99"
     ],
     "cflags_cc+": [
-      "-std=c++11"
+      "-std=c++11",
+      "-Wno-maybe-uninitialized",
+      "-Wno-cast-function-type"
     ],
     "include_dirs": [
       "<!(node -e \"require('nan')\")"
