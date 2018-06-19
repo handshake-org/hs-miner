@@ -669,7 +669,7 @@ NAN_METHOD(has_cuda) {
 
 NAN_METHOD(has_device) {
   if (info.Length() != 0)
-    return Nan::ThrowError("get_device_count() requires no arguments.");
+    return Nan::ThrowError("has_device() requires no arguments.");
 
 #ifdef HSK_HAS_CUDA
   info.GetReturnValue().Set(Nan::New<v8::Boolean>(hsk_device_count()));
@@ -691,7 +691,7 @@ NAN_METHOD(get_device_count) {
 
 NAN_METHOD(get_devices) {
   if (info.Length() != 0)
-    return Nan::ThrowError("has_cuda() requires no arguments.");
+    return Nan::ThrowError("get_devices() requires no arguments.");
 
   v8::Local<v8::Array> rets = Nan::New<v8::Array>();
 
