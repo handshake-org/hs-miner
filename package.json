@@ -20,7 +20,7 @@
     "hsk-mine": "./bin/hsk-mine"
   },
   "scripts": {
-    "install": "./scripts/rebuild main",
+    "install": "./scripts/rebuild testnet",
     "install-main": "./scripts/rebuild main",
     "install-testnet": "./scripts/rebuild testnet",
     "install-regtest": "./scripts/rebuild regtest",
