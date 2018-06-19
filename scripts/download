@@ -396,14 +396,14 @@ $SED -i 's/twice_set/leancu_twice_set/g' $leancu
 #
 
 # Add easiness parameter.
-ease=$(
-  echo '#ifndef EASE'
-  echo '#define EASE 50'
+perc=$(
+  echo '#ifndef PERC'
+  echo '#define PERC 50'
   echo '#endif'
   echo '#define EASINESS \'
-  echo '  ((uint32_t)(((uint64_t)EASE * (NEDGES * 2)) / 100))'
+  echo '  ((uint32_t)(((uint64_t)PERC * (NEDGES * 2)) / 100))'
 )
-splice_after '^#define EDGEMASK' "$ease" $cuckooh
+splice_after '^#define EDGEMASK' "$perc" $cuckooh
 # $SED -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
 
 # Error on > 32 bytes

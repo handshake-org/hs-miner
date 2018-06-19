@@ -47,7 +47,7 @@ class Miner {
     this.log('  Network: %s', miner.NETWORK);
     this.log('  Edge Bits: %d', miner.EDGE_BITS);
     this.log('  Proof Size: %d', miner.PROOF_SIZE);
-    this.log('  Easipct: %d', miner.EASE);
+    this.log('  Easipct: %d', miner.PERC);
     this.log('');
 
     if (miner.HAS_CUDA) {

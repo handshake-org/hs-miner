@@ -116,7 +116,7 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 - `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
 - `miner.getEdgeBits()` - Get number of edge bits (compile time flag).
 - `miner.getProofSize()` - Get proof size (compile time flag).
-- `miner.getEase()` - Get ease (compile time flag).
+- `miner.getPerc()` - Get easiness percentage (compile time flag).
 - `miner.getEasiness()` - Get easiness (compile time flag).
 - `miner.getNetwork()` - Get network (compile time flag).
 - `miner.getBackends()` - Get available backends.
@@ -143,7 +143,7 @@ used with the `mean-cuda` backend. See `Notes` for more information.
 
 - `miner.EDGE_BITS` - Edge bits (compile time flag).
 - `miner.PROOF_SIZE` - Proof size (compile time flag).
-- `miner.EASE` - Ease (compile time flag).
+- `miner.PERC` - Easiness percentage (compile time flag).
 - `miner.EASINESS` - Easiness (compile time flag).
 - `miner.NETWORK` - Network (compile time flag).
 - `miner.BACKENDS` - Available backends.

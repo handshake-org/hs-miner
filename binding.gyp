@@ -5,7 +5,7 @@
     "hsk_cudalib%": "<!(./scripts/get cuda_lib)",
     "hsk_edgebits%": "<!(./scripts/get bits)",
     "hsk_proofsize%": "<!(./scripts/get size)",
-    "hsk_ease%": "<!(./scripts/get ease)",
+    "hsk_perc%": "<!(./scripts/get perc)",
     "hsk_network%": "<!(./scripts/get network)"
   },
   "targets": [{
@@ -43,7 +43,7 @@
       "HSK_NETWORK=<(hsk_network)",
       "EDGEBITS=<(hsk_edgebits)",
       "PROOFSIZE=<(hsk_proofsize)",
-      "EASE=<(hsk_ease)",
+      "PERC=<(hsk_perc)",
       "ATOMIC"
     ],
     "conditions": [

@@ -601,11 +601,11 @@ NAN_METHOD(get_proof_size) {
   info.GetReturnValue().Set(Nan::New<v8::Uint32>(PROOFSIZE));
 }
 
-NAN_METHOD(get_ease) {
+NAN_METHOD(get_perc) {
   if (info.Length() != 0)
-    return Nan::ThrowError("get_ease() requires no arguments.");
+    return Nan::ThrowError("get_perc() requires no arguments.");
 
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(EASE));
+  info.GetReturnValue().Set(Nan::New<v8::Uint32>(PERC));
 }
 
 NAN_METHOD(get_easiness) {
@@ -617,7 +617,7 @@ NAN_METHOD(get_easiness) {
 
 NAN_METHOD(get_network) {
   if (info.Length() != 0)
-    return Nan::ThrowError("get_ease() requires no arguments.");
+    return Nan::ThrowError("get_network() requires no arguments.");
 
   const char *name = HSK_STR(HSK_NETWORK);
 
@@ -729,7 +729,7 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "sha3", sha3);
   Nan::Export(target, "getEdgeBits", get_edge_bits);
   Nan::Export(target, "getProofSize", get_proof_size);
-  Nan::Export(target, "getEase", get_ease);
+  Nan::Export(target, "getPerc", get_perc);
   Nan::Export(target, "getEasiness", get_easiness);
   Nan::Export(target, "getNetwork", get_network);
   Nan::Export(target, "getBackends", get_backends);

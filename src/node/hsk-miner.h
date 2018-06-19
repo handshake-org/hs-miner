@@ -14,7 +14,7 @@ NAN_METHOD(blake2b);
 NAN_METHOD(sha3);
 NAN_METHOD(get_edge_bits);
 NAN_METHOD(get_proof_size);
-NAN_METHOD(get_ease);
+NAN_METHOD(get_perc);
 NAN_METHOD(get_easiness);
 NAN_METHOD(get_network);
 NAN_METHOD(get_backends);

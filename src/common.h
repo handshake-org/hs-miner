@@ -20,8 +20,8 @@
 #define PROOFSIZE 42
 #endif
 
-#ifndef EASE
-#define EASE 50
+#ifndef PERC
+#define PERC 50
 #endif
 
 #ifndef NEDGES
@@ -33,7 +33,7 @@
 #endif
 
 #ifndef EASINESS
-#define EASINESS ((uint32_t)(((uint64_t)EASE * (NEDGES * 2)) / 100))
+#define EASINESS ((uint32_t)(((uint64_t)PERC * (NEDGES * 2)) / 100))
 #endif
 
 #define MIN_HEADER_SIZE 4

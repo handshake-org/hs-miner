@@ -2,19 +2,19 @@
 
 MAIN_BITS=29
 MAIN_SIZE=42
-MAIN_EASE=50
+MAIN_PERC=50
 
 TESTNET_BITS=23
 TESTNET_SIZE=42
-TESTNET_EASE=50
+TESTNET_PERC=50
 
 REGTEST_BITS=7
 REGTEST_SIZE=4
-REGTEST_EASE=50
+REGTEST_PERC=50
 
 SIMNET_BITS=15
 SIMNET_SIZE=18
-SIMNET_EASE=50
+SIMNET_PERC=50
 
 NETWORK=$(test -n "$HSK_NETWORK" && echo "$HSK_NETWORK" || echo 'main')
 
@@ -130,19 +130,19 @@ case "$1" in
       ;;
     esac
   ;;
-  ease)
+  perc)
     case "$NETWORK" in
       main)
-        echo "$MAIN_EASE"
+        echo "$MAIN_PERC"
       ;;
       testnet)
-        echo "$TESTNET_EASE"
+        echo "$TESTNET_PERC"
       ;;
       regtest)
-        echo "$REGTEST_EASE"
+        echo "$REGTEST_PERC"
       ;;
       simnet)
-        echo "$SIMNET_EASE"
+        echo "$SIMNET_PERC"
       ;;
       *)
         echo 'Bad network.' 2>& 1
