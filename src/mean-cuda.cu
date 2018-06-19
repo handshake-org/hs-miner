@@ -1,4 +1,4 @@
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
 #include "tromp/mean_miner.cu"
 #endif
 
@@ -15,7 +15,7 @@ hsk_mean_cuda_run(
   uint32_t *result,
   bool *match
 ) {
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
   uint8_t header[MAX_HEADER_SIZE];
   size_t header_len = options->header_len;
   uint32_t nonce = options->nonce;

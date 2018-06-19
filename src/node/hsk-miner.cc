@@ -639,7 +639,7 @@ NAN_METHOD(get_backends) {
   ret->Set(i++, Nan::New<v8::String>("lean").ToLocalChecked());
 #endif
 
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
   ret->Set(i++, Nan::New<v8::String>("mean").ToLocalChecked());
 #endif
 
@@ -648,7 +648,7 @@ NAN_METHOD(get_backends) {
   ret->Set(i++, Nan::New<v8::String>("lean-cuda").ToLocalChecked());
 #endif
 
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
   ret->Set(i++, Nan::New<v8::String>("mean-cuda").ToLocalChecked());
 #endif
 #endif

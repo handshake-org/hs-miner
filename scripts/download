@@ -268,10 +268,10 @@ check_path=$(
 
 check=$(
   echo ''
-  echo '              for (int32_t i = 0; i < PROOFSIZE; i++) {'
-  echo '                if (sol[i] >= EASINESS)'
-  echo '                  goto out;'
-  echo '              }'
+  # echo '              for (int32_t i = 0; i < PROOFSIZE; i++) {'
+  # echo '                if (sol[i] >= EASINESS)'
+  # echo '                  goto out;'
+  # echo '              }'
   echo ''
   echo '              hsk_hash_solution(sol, chash);'
   echo ''
@@ -404,7 +404,7 @@ ease=$(
   echo '  ((uint32_t)(((uint64_t)EASE * (NEDGES * 2)) / 100))'
 )
 splice_after '^#define EDGEMASK' "$ease" $cuckooh
-$SED -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
+# $SED -i 's/^\(    if (nonces\[n\]\) > EDGEMASK/\1 >= EASINESS/g' $cuckooh
 
 # Error on > 32 bytes
 $SED -i 's/^typedef u64 node_t;/#error "EDGEBITS too high."/g' $cuckooh

@@ -1,4 +1,4 @@
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
 #include "tromp/mean_miner.hpp"
 #endif
 #include <unistd.h>
@@ -12,7 +12,7 @@ hsk_mean_run(
   uint32_t *result,
   bool *match
 ) {
-#if EDGEBITS >= 27
+#if EDGEBITS >= 28
   uint32_t nonce = options->nonce;
   uint32_t range = 1;
   uint32_t nthreads = 1;
