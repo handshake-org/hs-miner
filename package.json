@@ -1,6 +1,7 @@
 {
   "name": "hsk-miner",
   "version": "0.0.0",
+  "private": true,
   "description": "Handshake CUDA miner",
   "keywords": [
     "crypto",
@@ -8,10 +9,10 @@
     "siphash"
   ],
   "license": "MIT",
-  "repository": "git://github.com/bcoin-org/hsk-miner.git",
-  "homepage": "https://github.com/bcoin-org/hsk-miner",
+  "repository": "git://github.com/handshake-org/hsk-miner.git",
+  "homepage": "https://github.com/handshake-org/hsk-miner",
   "bugs": {
-    "url": "https://github.com/bcoin-org/hsk-miner/issues"
+    "url": "https://github.com/handshake-org/hsk-miner/issues"
   },
   "author": "Christopher Jeffrey <chjjeffrey@gmail.com>",
   "main": "./lib/hsk-miner.js",
