@@ -35,26 +35,26 @@ SIZE=$(./scripts/get size)
 PERC=$(./scripts/get perc)
 NETWORK=$(./scripts/get network)
 DENDIAN=$(test "$ENDIAN" = "little" \
-  && echo -DHSK_LITTLE_ENDIAN \
-  || echo -DHSK_BIG_ENDIAN)
+  && echo -DHS_LITTLE_ENDIAN \
+  || echo -DHS_BIG_ENDIAN)
 
 compile_cuda() {
   local miner="$1"
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
-    $DENDIAN -DHSK_HAS_CUDA -DHSK_NETWORK=$NETWORK \
+    $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
     -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -dc -o ${miner}.o -c \
     ${miner}.cu
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
-    $DENDIAN -DHSK_HAS_CUDA -DHSK_NETWORK=$NETWORK \
+    $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
     -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -dlink -o ${miner}.dlink.o \
     ${miner}.o
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
-    $DENDIAN -DHSK_HAS_CUDA -DHSK_NETWORK=$NETWORK \
+    $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
     -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -lib -o ${miner}.a \
     ${miner}.o ${miner}.dlink.o

@@ -16,7 +16,7 @@ SIMNET_BITS=15
 SIMNET_SIZE=18
 SIMNET_PERC=50
 
-NETWORK=$(test -n "$HSK_NETWORK" && echo "$HSK_NETWORK" || echo 'testnet')
+NETWORK=$(test -n "$HS_NETWORK" && echo "$HS_NETWORK" || echo 'testnet')
 
 SO=so
 

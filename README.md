@@ -1,4 +1,4 @@
-# hsk-miner
+# hs-miner
 
 CUDA-capable Cuckoo Cycle miner for Handshake.
 
@@ -17,10 +17,10 @@ make testnet
 
 ## Usage
 
-Simply point the miner at an HSK RPC server and you're off.
+Simply point the miner at an HS RPC server and you're off.
 
 ``` js
-$ hsk-miner --rpc-host localhost --rpc-port 13037 --rpc-pass my-password
+$ hs-miner --rpc-host localhost --rpc-port 13037 --rpc-pass my-password
 ```
 
 ## CLI Usage
@@ -30,13 +30,13 @@ is most useful for testing.
 
 ``` js
 # Mine a single block
-$ hsk-mine [header-hex] [target] [backend] -n [nonce] -r [range]
+$ hs-mine [header-hex] [target] [backend] -n [nonce] -r [range]
 ```
 
 ## API Usage
 
 ``` js
-const miner = require('hsk-miner');
+const miner = require('hs-miner');
 
 // Header without the appended solution.
 const hdr = Buffer.alloc(164, 0x00);
@@ -242,7 +242,7 @@ $ sudo apt-get install nodejs
 # Install git & python
 $ sudo apt-get install git python
 
-$ npm install hsk-miner
+$ npm install hs-miner
 ```
 
 ### RHEL & Fedora
@@ -273,19 +273,19 @@ $ sudo dnf clean all
 $ sudo dnf install cuda
 ```
 
-#### Install node.js & hsk-miner (Both)
+#### Install node.js & hs-miner (Both)
 
 ``` bash
 $ curl --silent --location https://rpm.nodesource.com/setup_9.x | sudo bash -
 $ sudo yum install nodejs gcc-c++ make git python2
-$ npm install hsk-miner
+$ npm install hs-miner
 ```
 
 ### Arch Linux
 
 ``` bash
 $ sudo pacman -S nodejs npm git nvidia nvidia-utils nvidia-settings cuda python2
-$ npm install hsk-miner
+$ npm install hs-miner
 ```
 
 ### OSX
@@ -293,7 +293,7 @@ $ npm install hsk-miner
 ``` bash
 $ brew install node git coreutils perl grep gnu-sed gawk python2
 $ brew cask install cuda
-$ npm install hsk-miner
+$ npm install hs-miner
 ```
 
 ### Windows
@@ -311,25 +311,6 @@ all code is your original work. `</legalese>`
 - Copyright (c) 2018, Christopher Jeffrey (MIT License).
 
 See LICENSE for more info.
-
-### License Notes
-
-John Tromp's mining code is released under the "Fair Mining License" which
-requires miners to pay coin developers a fee. This is done to discourage ICOs.
-
-Handshake is not an ICO: it does not take money from a public sale and 100% of
-the money given by accredited investors is donated to open source non-profits.
-
-We do not believe it is fair to require miners to have to pay developers. This
-being the case, we chose to avoid redistributing any of Tromp's code in this
-repository or package. Precompiled binaries will also never be distributed for
-hsk-miner. As a result of all of this, Tromp's license will __not__ be included
-here. Nontheless, full credit goes to Mr. Tromp for his brilliant PoW
-algorithm.
-
-Any other implementations of Cuckoo Cycle found in Handshake projects (hskd &
-hnsd) are hand-written. They follow the logic of Tromp's code, but are clean
-reimplementations (one in javascript and the other in C).
 
 [1]: https://github.com/tromp
 [2]: https://github.com/tromp/cuckoo

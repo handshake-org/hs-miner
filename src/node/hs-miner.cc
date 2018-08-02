@@ -1,5 +1,5 @@
 /**
- * hsk-miner.cc
+ * hs-miner.cc
  * Copyright (c) 2018, Christopher Jeffrey (MIT License)
  */
 
@@ -14,11 +14,11 @@
 #include <node.h>
 #include <nan.h>
 
-#include "hsk-miner.h"
+#include "hs-miner.h"
 #include "../tromp/blake2.h"
 #include "../common.h"
 
-typedef std::unordered_map<uint32_t, hsk_options_t *> job_map_t;
+typedef std::unordered_map<uint32_t, hs_options_t *> job_map_t;
 
 static std::mutex m;
 static job_map_t job_map;
@@ -27,8 +27,8 @@ static uint16_t job_counter = 0;
 class MinerWorker : public Nan::AsyncWorker {
 public:
   MinerWorker (
-    hsk_options_t *options,
-    hsk_miner_func mine_func,
+    hs_options_t *options,
+    hs_miner_func mine_func,
     Nan::Callback *callback
   );
 
@@ -37,8 +37,8 @@ public:
   void HandleOKCallback();
 
 private:
-  hsk_options_t *options;
-  hsk_miner_func mine_func;
+  hs_options_t *options;
+  hs_miner_func mine_func;
   int32_t rc;
   uint8_t solution[PROOFSIZE * 4];
   uint32_t nonce;
@@ -46,8 +46,8 @@ private:
 };
 
 MinerWorker::MinerWorker (
-  hsk_options_t *options,
-  hsk_miner_func mine_func,
+  hs_options_t *options,
+  hs_miner_func mine_func,
   Nan::Callback *callback
 ) : Nan::AsyncWorker(callback)
   , options(options)
@@ -91,42 +91,42 @@ MinerWorker::Execute() {
   m.unlock();
 
   switch (rc) {
-    case HSK_SUCCESS: {
+    case HS_SUCCESS: {
       break;
     }
-    case HSK_ENOMEM: {
+    case HS_ENOMEM: {
       SetErrorMessage("Miner out of memory.");
       break;
     }
-    case HSK_EFAILURE: {
+    case HS_EFAILURE: {
       SetErrorMessage("Miner failed.");
       break;
     }
-    case HSK_EBADARGS: {
+    case HS_EBADARGS: {
       SetErrorMessage("Invalid mining arguments.");
       break;
     }
-    case HSK_ENODEVICE: {
+    case HS_ENODEVICE: {
       SetErrorMessage("No CUDA devices found.");
       break;
     }
-    case HSK_EBADPROPS: {
+    case HS_EBADPROPS: {
       SetErrorMessage("Invalid CUDA device properties.");
       break;
     }
-    case HSK_ENOSUPPORT: {
+    case HS_ENOSUPPORT: {
       SetErrorMessage("Miner not supported with current cuckoo params.");
       break;
     }
-    case HSK_EMAXLOAD: {
+    case HS_EMAXLOAD: {
       SetErrorMessage("Max load exceeded.");
       break;
     }
-    case HSK_EBADPATH: {
+    case HS_EBADPATH: {
       SetErrorMessage("Invalid path length.");
       break;
     }
-    case HSK_ENOSOLUTION: {
+    case HS_ENOSOLUTION: {
       break;
     }
     default: {
@@ -146,7 +146,7 @@ void
 MinerWorker::HandleOKCallback() {
   Nan::HandleScope scope;
 
-  if (rc == HSK_ENOSOLUTION) {
+  if (rc == HS_ENOSOLUTION) {
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
     ret->Set(0, Nan::Null());
     ret->Set(1, Nan::New<v8::Uint32>(0));
@@ -168,33 +168,33 @@ MinerWorker::HandleOKCallback() {
   callback->Call(2, argv, async_resource);
 }
 
-static hsk_miner_func
+static hs_miner_func
 get_miner_func(const char *backend, bool *is_cuda) {
   if (is_cuda)
     *is_cuda = false;
 
-#ifdef HSK_HAS_CUDA
+#ifdef HS_HAS_CUDA
   if (strcmp(backend, "mean-cuda") == 0) {
     if (is_cuda)
       *is_cuda = true;
-    return hsk_mean_cuda_run;
+    return hs_mean_cuda_run;
   }
 
   if (strcmp(backend, "lean-cuda") == 0) {
     if (is_cuda)
       *is_cuda = true;
-    return hsk_lean_cuda_run;
+    return hs_lean_cuda_run;
   }
 #endif
 
   if (strcmp(backend, "mean") == 0)
-    return hsk_mean_run;
+    return hs_mean_run;
 
   if (strcmp(backend, "lean") == 0)
-    return hsk_lean_run;
+    return hs_lean_run;
 
   if (strcmp(backend, "simple") == 0)
-    return hsk_simple_run;
+    return hs_simple_run;
 
   return NULL;
 }
@@ -248,7 +248,7 @@ NAN_METHOD(mine) {
 
   Nan::Utf8String backend_(info[0]);
   const char *backend = (const char *)*backend_;
-  hsk_miner_func mine_func = get_miner_func(backend, NULL);
+  hs_miner_func mine_func = get_miner_func(backend, NULL);
 
   if (mine_func == NULL)
     return Nan::ThrowError("Unknown miner function.");
@@ -259,7 +259,7 @@ NAN_METHOD(mine) {
   uint32_t trims = info[6]->Uint32Value();
   uint32_t device = info[7]->Uint32Value();
 
-  hsk_options_t options;
+  hs_options_t options;
   options.header_len = hdr_len;
   memcpy(&options.header[0], hdr, hdr_len);
   options.nonce = nonce;
@@ -278,34 +278,34 @@ NAN_METHOD(mine) {
   int32_t rc = mine_func(&options, solution, &nonce, &match);
 
   switch (rc) {
-    case HSK_SUCCESS: {
+    case HS_SUCCESS: {
       break;
     }
-    case HSK_ENOMEM: {
+    case HS_ENOMEM: {
       return Nan::ThrowError("Miner out of memory.");
     }
-    case HSK_EFAILURE: {
+    case HS_EFAILURE: {
       return Nan::ThrowError("Miner failed.");
     }
-    case HSK_EBADARGS: {
+    case HS_EBADARGS: {
       return Nan::ThrowError("Invalid mining arguments.");
     }
-    case HSK_ENODEVICE: {
+    case HS_ENODEVICE: {
       return Nan::ThrowError("No CUDA devices found.");
     }
-    case HSK_EBADPROPS: {
+    case HS_EBADPROPS: {
       return Nan::ThrowError("Invalid CUDA device properties.");
     }
-    case HSK_ENOSUPPORT: {
+    case HS_ENOSUPPORT: {
       return Nan::ThrowError("Miner not supported with current cuckoo params.");
     }
-    case HSK_EMAXLOAD: {
+    case HS_EMAXLOAD: {
       return Nan::ThrowError("Max load exceeded.");
     }
-    case HSK_EBADPATH: {
+    case HS_EBADPATH: {
       return Nan::ThrowError("Invalid path length.");
     }
-    case HSK_ENOSOLUTION: {
+    case HS_ENOSOLUTION: {
       v8::Local<v8::Array> ret = Nan::New<v8::Array>();
       ret->Set(0, Nan::Null());
       ret->Set(1, Nan::New<v8::Uint32>(0));
@@ -385,7 +385,7 @@ NAN_METHOD(mine_async) {
   Nan::Utf8String backend_(info[0]);
   const char *backend = (const char *)*backend_;
   bool is_cuda;
-  hsk_miner_func mine_func = get_miner_func(backend, &is_cuda);
+  hs_miner_func mine_func = get_miner_func(backend, &is_cuda);
 
   if (mine_func == NULL)
     return Nan::ThrowError("Unknown miner function.");
@@ -398,7 +398,7 @@ NAN_METHOD(mine_async) {
 
   v8::Local<v8::Function> callback = info[8].As<v8::Function>();
 
-  hsk_options_t *options = (hsk_options_t *)malloc(sizeof(hsk_options_t));
+  hs_options_t *options = (hs_options_t *)malloc(sizeof(hs_options_t));
 
   if (options == NULL)
     return Nan::ThrowError("Out of memory.");
@@ -532,7 +532,7 @@ NAN_METHOD(verify) {
   if (target_len != 32)
     return Nan::ThrowTypeError("Invalid target size.");
 
-  int32_t rc = hsk_verify(
+  int32_t rc = hs_verify(
     (uint8_t *)hdr,
     hdr_len,
     (uint8_t *)solution,
@@ -582,7 +582,7 @@ NAN_METHOD(sha3) {
 
   uint8_t hash[32];
 
-  hsk_pow_hash(data, data_len, hash);
+  hs_pow_hash(data, data_len, hash);
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }
@@ -619,7 +619,7 @@ NAN_METHOD(get_network) {
   if (info.Length() != 0)
     return Nan::ThrowError("get_network() requires no arguments.");
 
-  const char *name = HSK_STR(HSK_NETWORK);
+  const char *name = HS_STR(HS_NETWORK);
 
   info.GetReturnValue().Set(
     Nan::New<v8::String>(name, strlen(name)).ToLocalChecked());
@@ -643,7 +643,7 @@ NAN_METHOD(get_backends) {
   ret->Set(i++, Nan::New<v8::String>("mean").ToLocalChecked());
 #endif
 
-#ifdef HSK_HAS_CUDA
+#ifdef HS_HAS_CUDA
 #if EDGEBITS >= 5
   ret->Set(i++, Nan::New<v8::String>("lean-cuda").ToLocalChecked());
 #endif
@@ -660,7 +660,7 @@ NAN_METHOD(has_cuda) {
   if (info.Length() != 0)
     return Nan::ThrowError("has_cuda() requires no arguments.");
 
-#ifdef HSK_HAS_CUDA
+#ifdef HS_HAS_CUDA
   info.GetReturnValue().Set(Nan::New<v8::Boolean>(true));
 #else
   info.GetReturnValue().Set(Nan::New<v8::Boolean>(false));
@@ -671,8 +671,8 @@ NAN_METHOD(has_device) {
   if (info.Length() != 0)
     return Nan::ThrowError("has_device() requires no arguments.");
 
-#ifdef HSK_HAS_CUDA
-  info.GetReturnValue().Set(Nan::New<v8::Boolean>(hsk_device_count()));
+#ifdef HS_HAS_CUDA
+  info.GetReturnValue().Set(Nan::New<v8::Boolean>(hs_device_count()));
 #else
   info.GetReturnValue().Set(Nan::New<v8::Boolean>(false));
 #endif
@@ -682,8 +682,8 @@ NAN_METHOD(get_device_count) {
   if (info.Length() != 0)
     return Nan::ThrowError("get_device_count() requires no arguments.");
 
-#ifdef HSK_HAS_CUDA
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(hsk_device_count()));
+#ifdef HS_HAS_CUDA
+  info.GetReturnValue().Set(Nan::New<v8::Uint32>(hs_device_count()));
 #else
   info.GetReturnValue().Set(Nan::New<v8::Uint32>(0));
 #endif
@@ -695,13 +695,13 @@ NAN_METHOD(get_devices) {
 
   v8::Local<v8::Array> rets = Nan::New<v8::Array>();
 
-#ifdef HSK_HAS_CUDA
-  uint32_t count = hsk_device_count();
+#ifdef HS_HAS_CUDA
+  uint32_t count = hs_device_count();
 
-  hsk_device_info_t dev;
+  hs_device_info_t dev;
 
   for (uint32_t i = 0; i < count; i++) {
-    if (!hsk_device_info(i, &dev))
+    if (!hs_device_info(i, &dev))
       break;
 
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
@@ -739,4 +739,4 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "getDevices", get_devices);
 }
 
-NODE_MODULE(hskminer, init)
+NODE_MODULE(hsminer, init)

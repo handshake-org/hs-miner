@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include "sha3.h"
 
-#define HSK_SHA3_ROUNDS 24
-#define HSK_SHA3_FINALIZED 0x80000000
+#define HS_SHA3_ROUNDS 24
+#define HS_SHA3_FINALIZED 0x80000000
 
 #if defined(i386) || defined(__i386__) || defined(__i486__) \
   || defined(__i586__) || defined(__i686__) || defined(__pentium__) \
@@ -108,7 +108,7 @@ swap_copy_u64_to_str(void *t, const void *f, size_t l) {
   }
 }
 
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
 #define le2me_64(x) bswap_64(x)
 #define me64_to_le_str(to, from, length) \
   swap_copy_u64_to_str((to), (from), (length))
@@ -118,7 +118,7 @@ swap_copy_u64_to_str(void *t, const void *f, size_t l) {
   memcpy((to), (from), (length))
 #endif
 
-static uint64_t hsk_keccak_round_constants[HSK_SHA3_ROUNDS] = {
+static uint64_t hs_keccak_round_constants[HS_SHA3_ROUNDS] = {
   I64(0x0000000000000001), I64(0x0000000000008082),
   I64(0x800000000000808A), I64(0x8000000080008000),
   I64(0x000000000000808B), I64(0x0000000080000001),
@@ -134,36 +134,36 @@ static uint64_t hsk_keccak_round_constants[HSK_SHA3_ROUNDS] = {
 };
 
 static void
-hsk_keccak_init(hsk_sha3_ctx *ctx, unsigned bits) {
+hs_keccak_init(hs_sha3_ctx *ctx, unsigned bits) {
   unsigned rate = 1600 - bits * 2;
 
-  memset(ctx, 0, sizeof(hsk_sha3_ctx));
+  memset(ctx, 0, sizeof(hs_sha3_ctx));
   ctx->block_size = rate / 8;
   assert(rate <= 1600 && (rate % 64) == 0);
 }
 
 void
-hsk_sha3_224_init(hsk_sha3_ctx *ctx) {
-  hsk_keccak_init(ctx, 224);
+hs_sha3_224_init(hs_sha3_ctx *ctx) {
+  hs_keccak_init(ctx, 224);
 }
 
 void
-hsk_sha3_256_init(hsk_sha3_ctx *ctx) {
-  hsk_keccak_init(ctx, 256);
+hs_sha3_256_init(hs_sha3_ctx *ctx) {
+  hs_keccak_init(ctx, 256);
 }
 
 void
-hsk_sha3_384_init(hsk_sha3_ctx *ctx) {
-  hsk_keccak_init(ctx, 384);
+hs_sha3_384_init(hs_sha3_ctx *ctx) {
+  hs_keccak_init(ctx, 384);
 }
 
 void
-hsk_sha3_512_init(hsk_sha3_ctx *ctx) {
-  hsk_keccak_init(ctx, 512);
+hs_sha3_512_init(hs_sha3_ctx *ctx) {
+  hs_keccak_init(ctx, 512);
 }
 
 static void
-hsk_keccak_theta(uint64_t *A) {
+hs_keccak_theta(uint64_t *A) {
   unsigned int x;
   uint64_t C[5], D[5];
 
@@ -186,7 +186,7 @@ hsk_keccak_theta(uint64_t *A) {
 }
 
 static void
-hsk_keccak_pi(uint64_t *A) {
+hs_keccak_pi(uint64_t *A) {
   uint64_t A1;
   A1 = A[1];
   A[1] = A[6];
@@ -216,7 +216,7 @@ hsk_keccak_pi(uint64_t *A) {
 }
 
 static void
-hsk_keccak_chi(uint64_t *A) {
+hs_keccak_chi(uint64_t *A) {
   int i;
   for (i = 0; i < 25; i += 5) {
     uint64_t A0 = A[0 + i], A1 = A[1 + i];
@@ -229,10 +229,10 @@ hsk_keccak_chi(uint64_t *A) {
 }
 
 static void
-hsk_sha3_permutation(uint64_t *state) {
+hs_sha3_permutation(uint64_t *state) {
   int round;
-  for (round = 0; round < HSK_SHA3_ROUNDS; round++) {
-    hsk_keccak_theta(state);
+  for (round = 0; round < HS_SHA3_ROUNDS; round++) {
+    hs_keccak_theta(state);
 
     state[1] = ROTL64(state[1], 1);
     state[2] = ROTL64(state[2], 62);
@@ -259,15 +259,15 @@ hsk_sha3_permutation(uint64_t *state) {
     state[23] = ROTL64(state[23], 56);
     state[24] = ROTL64(state[24], 14);
 
-    hsk_keccak_pi(state);
-    hsk_keccak_chi(state);
+    hs_keccak_pi(state);
+    hs_keccak_chi(state);
 
-    *state ^= hsk_keccak_round_constants[round];
+    *state ^= hs_keccak_round_constants[round];
   }
 }
 
 static void
-hsk_sha3_process_block(
+hs_sha3_process_block(
   uint64_t hash[25],
   const uint64_t *block,
   size_t block_size
@@ -310,15 +310,15 @@ hsk_sha3_process_block(
     }
   }
 
-  hsk_sha3_permutation(hash);
+  hs_sha3_permutation(hash);
 }
 
 void
-hsk_sha3_update(hsk_sha3_ctx *ctx, const unsigned char *msg, size_t size) {
+hs_sha3_update(hs_sha3_ctx *ctx, const unsigned char *msg, size_t size) {
   size_t index = (size_t)ctx->rest;
   size_t block_size = (size_t)ctx->block_size;
 
-  if (ctx->rest & HSK_SHA3_FINALIZED)
+  if (ctx->rest & HS_SHA3_FINALIZED)
     return;
 
   ctx->rest = (unsigned)((ctx->rest + size) % block_size);
@@ -330,7 +330,7 @@ hsk_sha3_update(hsk_sha3_ctx *ctx, const unsigned char *msg, size_t size) {
     if (size < left)
       return;
 
-    hsk_sha3_process_block(ctx->hash, ctx->message, block_size);
+    hs_sha3_process_block(ctx->hash, ctx->message, block_size);
     msg += left;
     size -= left;
   }
@@ -345,7 +345,7 @@ hsk_sha3_update(hsk_sha3_ctx *ctx, const unsigned char *msg, size_t size) {
       aligned_message_block = ctx->message;
     }
 
-    hsk_sha3_process_block(ctx->hash, aligned_message_block, block_size);
+    hs_sha3_process_block(ctx->hash, aligned_message_block, block_size);
     msg += block_size;
     size -= block_size;
   }
@@ -355,17 +355,17 @@ hsk_sha3_update(hsk_sha3_ctx *ctx, const unsigned char *msg, size_t size) {
 }
 
 void
-hsk_sha3_final(hsk_sha3_ctx *ctx, unsigned char *result) {
+hs_sha3_final(hs_sha3_ctx *ctx, unsigned char *result) {
   size_t digest_length = 100 - ctx->block_size / 2;
   const size_t block_size = ctx->block_size;
 
-  if (!(ctx->rest & HSK_SHA3_FINALIZED)) {
+  if (!(ctx->rest & HS_SHA3_FINALIZED)) {
     memset((char *)ctx->message + ctx->rest, 0, block_size - ctx->rest);
     ((char *)ctx->message)[ctx->rest] |= 0x06;
     ((char *)ctx->message)[block_size - 1] |= 0x80;
 
-    hsk_sha3_process_block(ctx->hash, ctx->message, block_size);
-    ctx->rest = HSK_SHA3_FINALIZED;
+    hs_sha3_process_block(ctx->hash, ctx->message, block_size);
+    ctx->rest = HS_SHA3_FINALIZED;
   }
 
   assert(block_size > digest_length);
@@ -375,17 +375,17 @@ hsk_sha3_final(hsk_sha3_ctx *ctx, unsigned char *result) {
 }
 
 void
-hsk_keccak_final(hsk_sha3_ctx *ctx, unsigned char *result) {
+hs_keccak_final(hs_sha3_ctx *ctx, unsigned char *result) {
   size_t digest_length = 100 - ctx->block_size / 2;
   const size_t block_size = ctx->block_size;
 
-  if (!(ctx->rest & HSK_SHA3_FINALIZED)) {
+  if (!(ctx->rest & HS_SHA3_FINALIZED)) {
     memset((char *)ctx->message + ctx->rest, 0, block_size - ctx->rest);
     ((char *)ctx->message)[ctx->rest] |= 0x01;
     ((char *)ctx->message)[block_size - 1] |= 0x80;
 
-    hsk_sha3_process_block(ctx->hash, ctx->message, block_size);
-    ctx->rest = HSK_SHA3_FINALIZED;
+    hs_sha3_process_block(ctx->hash, ctx->message, block_size);
+    ctx->rest = HS_SHA3_FINALIZED;
   }
 
   assert(block_size > digest_length);

@@ -5,13 +5,13 @@
 #include "common.h"
 
 int32_t
-hsk_verify(
+hs_verify(
   const uint8_t *hdr,
   size_t hdr_len,
   const uint8_t *solution,
   const uint8_t *target
 ) {
-  int32_t rc = hsk_verify_sol(hdr, hdr_len, solution);
+  int32_t rc = hs_verify_sol(hdr, hdr_len, solution);
 
   if (rc != POW_OK)
     return rc;
@@ -21,7 +21,7 @@ hsk_verify(
 
   uint8_t hash[32];
 
-  hsk_pow_hash(solution, PROOFSIZE * 4, &hash[0]);
+  hs_pow_hash(solution, PROOFSIZE * 4, &hash[0]);
 
   if (memcmp(hash, target, 32) > 0)
     return POW_TOO_BIG;
@@ -30,14 +30,14 @@ hsk_verify(
 }
 
 int32_t
-hsk_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution) {
+hs_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution) {
   siphash_keys keys;
   uint32_t sol[PROOFSIZE];
 
   setheader((const char *)hdr, hdr_len, &keys);
 
   for (int32_t i = 0; i < PROOFSIZE; i++)
-    sol[i] = hsk_read_u32(&solution[i * 4]);
+    sol[i] = hs_read_u32(&solution[i * 4]);
 
   return verify(sol, &keys);
 }

@@ -6,8 +6,8 @@
 #include "common.h"
 
 int32_t
-hsk_lean_run(
-  hsk_options_t *options,
+hs_lean_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
@@ -25,7 +25,7 @@ hsk_lean_run(
   memset(hash, 0xff, 32);
 
   if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
-    return HSK_EBADARGS;
+    return HS_EBADARGS;
 
   memcpy(header, options->header, header_len);
 
@@ -44,11 +44,11 @@ hsk_lean_run(
     (lean_thread_ctx *)calloc(nthreads, sizeof(lean_thread_ctx));
 
   if (!threads)
-    return HSK_ENOMEM;
+    return HS_ENOMEM;
 
   lean_cuckoo_ctx ctx(nthreads, ntrims, 8);
 
-  int32_t rc = HSK_SUCCESS;
+  int32_t rc = HS_SUCCESS;
   bool has_sol = false;
 
   *result = 0;
@@ -73,7 +73,7 @@ hsk_lean_run(
       );
 
       if (err != 0) {
-        rc = HSK_EFAILURE;
+        rc = HS_EFAILURE;
         goto done;
       }
     }
@@ -82,7 +82,7 @@ hsk_lean_run(
       int32_t err = pthread_join(threads[i].thread, NULL);
 
       if (err != 0) {
-        rc = HSK_EFAILURE;
+        rc = HS_EFAILURE;
         goto done;
       }
     }
@@ -100,12 +100,12 @@ hsk_lean_run(
       if (!sol)
         continue;
 
-      hsk_hash_solution(sol, chash);
+      hs_hash_solution(sol, chash);
 
       if (memcmp(chash, hash, 32) <= 0) {
         *result = nonce + r;
         for (int32_t i = 0; i < PROOFSIZE; i++)
-          hsk_write_u32(&solution[i * 4], sol[i]);
+          hs_write_u32(&solution[i * 4], sol[i]);
         memcpy(hash, chash, 32);
         has_sol = true;
       }
@@ -118,13 +118,13 @@ hsk_lean_run(
   }
 
   if (!has_sol)
-    rc = HSK_ENOSOLUTION;
+    rc = HS_ENOSOLUTION;
 
 done:
   free(threads);
 
   return rc;
 #else
-  return HSK_ENOSUPPORT;
+  return HS_ENOSUPPORT;
 #endif
 }

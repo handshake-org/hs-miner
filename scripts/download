@@ -238,13 +238,13 @@ check_bits=$(
   echo ''
   echo '    if (!bits) {'
   echo '      freeCudaAllocs();'
-  echo '      return HSK_ENOMEM;'
+  echo '      return HS_ENOMEM;'
   echo '    }'
   echo ''
   echo '    if (!*running) {'
   echo '      free(bits);'
   echo '      freeCudaAllocs();'
-  echo '      return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+  echo '      return has_sol ? HS_SUCCESS : HS_ENOSOLUTION;'
   echo '    }'
   echo ' '
 )
@@ -252,7 +252,7 @@ check_bits=$(
 check_load=$(
   echo '      free(bits);'
   echo '      freeCudaAllocs();'
-  echo '      return HSK_EMAXLOAD;'
+  echo '      return HS_EMAXLOAD;'
 )
 
 check_path=$(
@@ -261,7 +261,7 @@ check_path=$(
   echo '            delete &cuckoo;'
   echo '            free(bits);'
   echo '            freeCudaAllocs();'
-  echo '            return HSK_EBADPATH;'
+  echo '            return HS_EBADPATH;'
   echo '          }'
   echo ' '
 )
@@ -273,12 +273,12 @@ check=$(
   # echo '                  goto out;'
   # echo '              }'
   echo ''
-  echo '              hsk_hash_solution(sol, chash);'
+  echo '              hs_hash_solution(sol, chash);'
   echo ''
   echo '              if (memcmp(chash, hash, 32) <= 0) {'
   echo '                *result = ononce + r;'
   echo '                for (int32_t i = 0; i < PROOFSIZE; i++)'
-  echo '                  hsk_write_u32(&solution[i * 4], sol[i]);'
+  echo '                  hs_write_u32(&solution[i * 4], sol[i]);'
   echo '                memcpy(hash, chash, 32);'
   echo '                has_sol = true;'
   echo '              }'
@@ -288,7 +288,7 @@ check=$(
   echo '                delete &cuckoo;'
   echo '                free(bits);'
   echo '                freeCudaAllocs();'
-  echo '                return HSK_SUCCESS;'
+  echo '                return HS_SUCCESS;'
   echo '              }'
   echo ''
   echo 'out:'
@@ -296,7 +296,7 @@ check=$(
   echo '                delete &cuckoo;'
   echo '                free(bits);'
   echo '                freeCudaAllocs();'
-  echo '                return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+  echo '                return has_sol ? HS_SUCCESS : HS_ENOSOLUTION;'
   echo '              }'
   echo ' '
 )
@@ -312,7 +312,7 @@ done=$(
   echo ''
   echo '  freeCudaAllocs();'
   echo ''
-  echo '  return has_sol ? HSK_SUCCESS : HSK_ENOSOLUTION;'
+  echo '  return has_sol ? HS_SUCCESS : HS_ENOSOLUTION;'
 )
 
 # Add some placeholders to make things easier.

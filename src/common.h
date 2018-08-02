@@ -1,5 +1,5 @@
-#ifndef _HSK_MINER_COMMON_H
-#define _HSK_MINER_COMMON_H
+#ifndef _HS_MINER_COMMON_H
+#define _HS_MINER_COMMON_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,25 +42,25 @@
 #define MAX_HEADER_SIZE 512
 #endif
 
-#ifndef HSK_NETWORK
-#define HSK_NETWORK main
+#ifndef HS_NETWORK
+#define HS_NETWORK main
 #endif
 
-#define HSK_QUOTE(name) #name
-#define HSK_STR(macro) HSK_QUOTE(macro)
+#define HS_QUOTE(name) #name
+#define HS_STR(macro) HS_QUOTE(macro)
 
-#define HSK_SUCCESS 0
-#define HSK_ENOMEM 1
-#define HSK_EFAILURE 2
-#define HSK_EBADARGS 3
-#define HSK_ENODEVICE 4
-#define HSK_EBADPROPS 5
-#define HSK_ENOSUPPORT 6
-#define HSK_EMAXLOAD 7
-#define HSK_EBADPATH 8
-#define HSK_ENOSOLUTION 9
+#define HS_SUCCESS 0
+#define HS_ENOMEM 1
+#define HS_EFAILURE 2
+#define HS_EBADARGS 3
+#define HS_ENODEVICE 4
+#define HS_EBADPROPS 5
+#define HS_ENOSUPPORT 6
+#define HS_EMAXLOAD 7
+#define HS_EBADPATH 8
+#define HS_ENOSOLUTION 9
 
-typedef struct hsk_options_s {
+typedef struct hs_options_s {
   size_t header_len;
   uint8_t header[MAX_HEADER_SIZE];
   uint32_t nonce;
@@ -72,66 +72,66 @@ typedef struct hsk_options_s {
   bool log;
   bool is_cuda;
   bool running;
-} hsk_options_t;
+} hs_options_t;
 
-typedef int32_t (*hsk_miner_func)(
-  hsk_options_t *options,
+typedef int32_t (*hs_miner_func)(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
 );
 
-#ifdef HSK_HAS_CUDA
-typedef struct hsk_device_info_s {
+#ifdef HS_HAS_CUDA
+typedef struct hs_device_info_s {
   char name[513];
   uint64_t memory;
   uint32_t bits;
   uint32_t clock_rate;
-} hsk_device_info_t;
+} hs_device_info_t;
 #endif
 
 int32_t
-hsk_mean_run(
-  hsk_options_t *options,
+hs_mean_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
 );
 
 int32_t
-hsk_lean_run(
-  hsk_options_t *options,
+hs_lean_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
 );
 
 int32_t
-hsk_simple_run(
-  hsk_options_t *options,
+hs_simple_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
 );
 
-#ifdef HSK_HAS_CUDA
+#ifdef HS_HAS_CUDA
 uint32_t
-hsk_device_count(void);
+hs_device_count(void);
 
 bool
-hsk_device_info(uint32_t device, hsk_device_info_t *info);
+hs_device_info(uint32_t device, hs_device_info_t *info);
 
 int32_t
-hsk_mean_cuda_run(
-  hsk_options_t *options,
+hs_mean_cuda_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
 );
 
 int32_t
-hsk_lean_cuda_run(
-  hsk_options_t *options,
+hs_lean_cuda_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
@@ -139,7 +139,7 @@ hsk_lean_cuda_run(
 #endif
 
 int32_t
-hsk_verify(
+hs_verify(
   const uint8_t *hdr,
   size_t hdr_len,
   const uint8_t *solution,
@@ -147,12 +147,12 @@ hsk_verify(
 );
 
 int32_t
-hsk_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution);
+hs_verify_sol(const uint8_t *hdr, size_t hdr_len, const uint8_t *solution);
 
 static inline uint32_t
-hsk_read_u32(const uint8_t *data) {
+hs_read_u32(const uint8_t *data) {
   uint32_t out;
-#ifdef HSK_LITTLE_ENDIAN
+#ifdef HS_LITTLE_ENDIAN
   memcpy(&out, data, 4);
 #else
   out = 0;
@@ -165,8 +165,8 @@ hsk_read_u32(const uint8_t *data) {
 }
 
 static inline void
-hsk_write_u32(uint8_t *data, uint32_t num) {
-#ifdef HSK_LITTLE_ENDIAN
+hs_write_u32(uint8_t *data, uint32_t num) {
+#ifdef HS_LITTLE_ENDIAN
   memcpy(data, &num, 4);
 #else
   data[0] = (uint8_t)num;
@@ -177,22 +177,22 @@ hsk_write_u32(uint8_t *data, uint32_t num) {
 }
 
 static inline void
-hsk_pow_hash(const uint8_t *data, size_t data_len, uint8_t *hash) {
+hs_pow_hash(const uint8_t *data, size_t data_len, uint8_t *hash) {
   // Old:
   // blake2b((void *)hash, 32, (const void *)data, data_len, NULL, 0);
-  hsk_sha3_ctx ctx;
-  hsk_sha3_256_init(&ctx);
-  hsk_sha3_update(&ctx, data, data_len);
-  hsk_sha3_final(&ctx, hash);
+  hs_sha3_ctx ctx;
+  hs_sha3_256_init(&ctx);
+  hs_sha3_update(&ctx, data, data_len);
+  hs_sha3_final(&ctx, hash);
 }
 
 static inline void
-hsk_hash_solution(const uint32_t *sol, uint8_t *hash) {
+hs_hash_solution(const uint32_t *sol, uint8_t *hash) {
   uint8_t data[PROOFSIZE * 4];
 
   for (int32_t i = 0; i < PROOFSIZE; i++)
-    hsk_write_u32(&data[i * 4], sol[i]);
+    hs_write_u32(&data[i * 4], sol[i]);
 
-  hsk_pow_hash(data, sizeof(data), hash);
+  hs_pow_hash(data, sizeof(data), hash);
 }
 #endif

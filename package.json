@@ -1,5 +1,5 @@
 {
-  "name": "hsk-miner",
+  "name": "hs-miner",
   "version": "0.0.0",
   "private": true,
   "description": "Handshake CUDA miner",
@@ -9,16 +9,16 @@
     "siphash"
   ],
   "license": "MIT",
-  "repository": "git://github.com/handshake-org/hsk-miner.git",
-  "homepage": "https://github.com/handshake-org/hsk-miner",
+  "repository": "git://github.com/handshake-org/hs-miner.git",
+  "homepage": "https://github.com/handshake-org/hs-miner",
   "bugs": {
-    "url": "https://github.com/handshake-org/hsk-miner/issues"
+    "url": "https://github.com/handshake-org/hs-miner/issues"
   },
   "author": "Christopher Jeffrey <chjjeffrey@gmail.com>",
-  "main": "./lib/hsk-miner.js",
+  "main": "./lib/hs-miner.js",
   "bin": {
-    "hsk-miner": "./bin/hsk-miner",
-    "hsk-mine": "./bin/hsk-mine"
+    "hs-miner": "./bin/hs-miner",
+    "hs-mine": "./bin/hs-mine"
   },
   "scripts": {
     "install": "./scripts/rebuild testnet",
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "bindings": "~1.3.0",
-    "bsert": "~0.0.3",
+    "bsert": "~0.0.4",
     "nan": "~2.10.0"
   },
   "devDependencies": {

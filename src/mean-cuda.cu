@@ -9,8 +9,8 @@
 #include "common.h"
 
 int32_t
-hsk_mean_cuda_run(
-  hsk_options_t *options,
+hs_mean_cuda_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
@@ -27,7 +27,7 @@ hsk_mean_cuda_run(
   memset(hash, 0xff, 32);
 
   if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
-    return HSK_EBADARGS;
+    return HS_EBADARGS;
 
   memcpy(header, options->header, header_len);
 
@@ -35,7 +35,7 @@ hsk_mean_cuda_run(
   cudaGetDeviceCount(&device_count);
 
   if (device_count < 0 || device >= device_count)
-    return HSK_ENODEVICE;
+    return HS_ENODEVICE;
 
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, device);
@@ -84,7 +84,7 @@ hsk_mean_cuda_run(
       || prop.maxThreadsPerBlock <= params.rename[1].stage2tpb
       || prop.maxThreadsPerBlock <= params.trim3tpb
       || prop.maxThreadsPerBlock <= params.rename3tpb) {
-    return HSK_EBADPROPS;
+    return HS_EBADPROPS;
   }
 
   cudaSetDevice(device);
@@ -109,29 +109,29 @@ hsk_mean_cuda_run(
       int32_t rc = verify(sol, &ctx.trimmer->sip_keys);
 
       if (rc == POW_OK) {
-        hsk_hash_solution(sol, chash);
+        hs_hash_solution(sol, chash);
 
         if (memcmp(chash, hash, 32) <= 0) {
           *result = nonce + r;
           for (int32_t i = 0; i < PROOFSIZE; i++)
-            hsk_write_u32(&solution[i * 4], sol[i]);
+            hs_write_u32(&solution[i * 4], sol[i]);
           memcpy(hash, chash, 32);
           has_sol = true;
         }
 
         if (memcmp(chash, options->target, 32) <= 0) {
           *match = true;
-          return HSK_SUCCESS;
+          return HS_SUCCESS;
         }
       }
     }
   }
 
   if (has_sol)
-    return HSK_SUCCESS;
+    return HS_SUCCESS;
 
-  return HSK_ENOSOLUTION;
+  return HS_ENOSOLUTION;
 #else
-  return HSK_ENOSUPPORT;
+  return HS_ENOSUPPORT;
 #endif
 }

@@ -14,7 +14,7 @@ class Miner {
     this.ssl = options.ssl || false;
     this.host = options.host || 'localhost';
     this.port = options.port || getPort();
-    this.user = options.user || 'hskrpc';
+    this.user = options.user || 'hsrpc';
     this.pass = options.pass || '';
     this.count = 1;
     this.sequence = 0;

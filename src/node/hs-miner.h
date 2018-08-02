@@ -1,5 +1,5 @@
-#ifndef _HSK_MINER_HSK_MINER_H
-#define _HSK_MINER_HSK_MINER_H
+#ifndef _HS_MINER_HS_MINER_H
+#define _HS_MINER_HS_MINER_H
 
 #include <node.h>
 #include <nan.h>

@@ -6,8 +6,8 @@
 #include "common.h"
 
 int32_t
-hsk_lean_cuda_run(
-  hsk_options_t *options,
+hs_lean_cuda_run(
+  hs_options_t *options,
   uint8_t *solution,
   uint32_t *result,
   bool *match
@@ -23,7 +23,7 @@ hsk_lean_cuda_run(
   uint32_t tpb = 0;
 
   if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
-    return HSK_EBADARGS;
+    return HS_EBADARGS;
 
   memcpy(header, options->header, header_len);
 
@@ -40,7 +40,7 @@ hsk_lean_cuda_run(
   cudaGetDeviceCount(&device_count);
 
   if (device_count < 0 || device >= device_count)
-    return HSK_ENODEVICE;
+    return HS_ENODEVICE;
 
   cudaSetDevice(device);
 
@@ -62,6 +62,6 @@ hsk_lean_cuda_run(
     match
   );
 #else
-  return HSK_ENOSUPPORT;
+  return HS_ENOSUPPORT;
 #endif
 }
