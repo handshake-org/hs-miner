@@ -2,6 +2,8 @@
 
 'use strict';
 
+process.title = 'hs-miner';
+
 const Config = require('bcfg');
 const Miner = require('./miner');
 const lib = require('../');
