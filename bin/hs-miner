@@ -9,7 +9,7 @@ const Miner = require('./miner');
 const lib = require('../');
 const pkg = require('../package.json');
 
-const config = new Config('hs', {
+const config = new Config('hsd', {
   suffix: 'network',
   fallback: 'main'
 });
@@ -45,7 +45,7 @@ try {
   ssl = config.str(['rpc-ssl', 'l'], false);
   host = config.str(['rpc-host', 'i'], 'localhost');
   port = config.uint(['rpc-port', 'p'], 0);
-  user = config.str(['rpc-user', 'u'], 'hsrpc');
+  user = config.str(['rpc-user', 'u'], 'hnsrpc');
   pass = config.str(['rpc-pass', 'k'], '');
   version = config.bool(['version', 'v'], false);
   help = config.bool(['help', 'h', '?'], false);
