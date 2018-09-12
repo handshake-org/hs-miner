@@ -292,7 +292,8 @@ $ npm install hs-miner
 
 ``` bash
 $ brew install node git coreutils perl grep gnu-sed gawk python2
-$ brew cask install cuda
+$ brew tap caskroom/drivers
+$ brew cask install nvidia-cuda
 $ npm install hs-miner
 ```
 
