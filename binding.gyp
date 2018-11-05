@@ -34,8 +34,17 @@
     "cflags_cc+": [
       "-std=c++11",
       "-Wno-maybe-uninitialized",
-      "-Wno-cast-function-type"
+      "-Wno-cast-function-type",
+      "-Wno-unused-parameter",
+      "-Wno-unknown-warning-option",
+      "-Wno-deprecated-declarations"
     ],
+    "xcode_settings": {
+      "OTHER_CFLAGS": [
+        "-Wno-deprecated-declarations"
+      ]
+    },
+    "msvs_disabled_warnings": [4996],
     "include_dirs": [
       "<!(node -e \"require('nan')\")"
     ],

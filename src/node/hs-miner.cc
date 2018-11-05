@@ -253,11 +253,11 @@ NAN_METHOD(mine) {
   if (mine_func == NULL)
     return Nan::ThrowError("Unknown miner function.");
 
-  uint32_t nonce = info[2]->Uint32Value();
-  uint32_t range = info[3]->Uint32Value();
-  uint32_t threads = info[5]->Uint32Value();
-  uint32_t trims = info[6]->Uint32Value();
-  uint32_t device = info[7]->Uint32Value();
+  uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
+  uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
+  uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
+  uint32_t trims = Nan::To<uint32_t>(info[6]).FromJust();
+  uint32_t device = Nan::To<uint32_t>(info[7]).FromJust();
 
   hs_options_t options;
   options.header_len = hdr_len;
@@ -390,11 +390,11 @@ NAN_METHOD(mine_async) {
   if (mine_func == NULL)
     return Nan::ThrowError("Unknown miner function.");
 
-  uint32_t nonce = info[2]->Uint32Value();
-  uint32_t range = info[3]->Uint32Value();
-  uint32_t threads = info[5]->Uint32Value();
-  uint32_t trims = info[6]->Uint32Value();
-  uint32_t device = info[7]->Uint32Value();
+  uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
+  uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
+  uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
+  uint32_t trims = Nan::To<uint32_t>(info[6]).FromJust();
+  uint32_t device = Nan::To<uint32_t>(info[7]).FromJust();
 
   v8::Local<v8::Function> callback = info[8].As<v8::Function>();
 
@@ -437,7 +437,7 @@ NAN_METHOD(is_running) {
   if (!info[0]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
-  uint32_t device = info[0]->Uint32Value();
+  uint32_t device = Nan::To<uint32_t>(info[0]).FromJust();
   bool ret = false;
 
   m.lock();
@@ -459,7 +459,7 @@ NAN_METHOD(stop) {
   if (!info[0]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
-  uint32_t device = info[0]->Uint32Value();
+  uint32_t device = Nan::To<uint32_t>(info[0]).FromJust();
   bool ret = false;
 
   m.lock();
