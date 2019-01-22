@@ -739,4 +739,4 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "getDevices", get_devices);
 }
 
-NODE_MODULE(hsminer, init)
+NAN_MODULE_WORKER_ENABLED(hsminer, init)
