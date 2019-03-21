@@ -1,7 +1,6 @@
 build/
+cuckoo/
 node_modules/
 npm-debug.log
-package-lock.json
 src/*.a
 src/tromp/
-cuckoo/
