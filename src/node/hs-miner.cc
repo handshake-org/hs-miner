@@ -739,4 +739,8 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "getDevices", get_devices);
 }
 
+#if NODE_MAJOR_VERSION >= 10
 NAN_MODULE_WORKER_ENABLED(hsminer, init)
+#else
+NODE_MODULE(hsminer, init)
+#endif
