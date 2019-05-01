@@ -148,9 +148,9 @@ MinerWorker::HandleOKCallback() {
 
   if (rc == HS_ENOSOLUTION) {
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
-    ret->Set(0, Nan::Null());
-    ret->Set(1, Nan::New<v8::Uint32>(0));
-    ret->Set(2, Nan::New<v8::Boolean>(false));
+    Nan::Set(ret, 0, Nan::Null());
+    Nan::Set(ret, 1, Nan::New<v8::Uint32>(0));
+    Nan::Set(ret, 2, Nan::New<v8::Boolean>(false));
     v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
     callback->Call(2, argv, async_resource);
     return;
@@ -158,10 +158,10 @@ MinerWorker::HandleOKCallback() {
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-  ret->Set(0,
+  Nan::Set(ret, 0,
     Nan::CopyBuffer((char *)solution, PROOFSIZE * 4).ToLocalChecked());
-  ret->Set(1, Nan::New<v8::Uint32>(nonce));
-  ret->Set(2, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 1, Nan::New<v8::Uint32>(nonce));
+  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
 
   v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
 
@@ -307,9 +307,9 @@ NAN_METHOD(mine) {
     }
     case HS_ENOSOLUTION: {
       v8::Local<v8::Array> ret = Nan::New<v8::Array>();
-      ret->Set(0, Nan::Null());
-      ret->Set(1, Nan::New<v8::Uint32>(0));
-      ret->Set(2, Nan::New<v8::Boolean>(false));
+      Nan::Set(ret, 0, Nan::Null());
+      Nan::Set(ret, 1, Nan::New<v8::Uint32>(0));
+      Nan::Set(ret, 2, Nan::New<v8::Boolean>(false));
       return info.GetReturnValue().Set(ret);
     }
     default: {
@@ -324,10 +324,10 @@ NAN_METHOD(mine) {
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-  ret->Set(0,
+  Nan::Set(ret, 0,
     Nan::CopyBuffer((char *)solution, PROOFSIZE * 4).ToLocalChecked());
-  ret->Set(1, Nan::New<v8::Uint32>(nonce));
-  ret->Set(2, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 1, Nan::New<v8::Uint32>(nonce));
+  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
 
   info.GetReturnValue().Set(ret);
 }
@@ -633,23 +633,23 @@ NAN_METHOD(get_backends) {
 
   int32_t i = 0;
 
-  ret->Set(i++, Nan::New<v8::String>("simple").ToLocalChecked());
+  Nan::Set(ret, i++, Nan::New<v8::String>("simple").ToLocalChecked());
 
 #if EDGEBITS >= 5
-  ret->Set(i++, Nan::New<v8::String>("lean").ToLocalChecked());
+  Nan::Set(ret, i++, Nan::New<v8::String>("lean").ToLocalChecked());
 #endif
 
 #if EDGEBITS >= 28
-  ret->Set(i++, Nan::New<v8::String>("mean").ToLocalChecked());
+  Nan::Set(ret, i++, Nan::New<v8::String>("mean").ToLocalChecked());
 #endif
 
 #ifdef HS_HAS_CUDA
 #if EDGEBITS >= 5
-  ret->Set(i++, Nan::New<v8::String>("lean-cuda").ToLocalChecked());
+  Nan::Set(ret, i++, Nan::New<v8::String>("lean-cuda").ToLocalChecked());
 #endif
 
 #if EDGEBITS >= 28
-  ret->Set(i++, Nan::New<v8::String>("mean-cuda").ToLocalChecked());
+  Nan::Set(ret, i++, Nan::New<v8::String>("mean-cuda").ToLocalChecked());
 #endif
 #endif
 
@@ -706,12 +706,12 @@ NAN_METHOD(get_devices) {
 
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-    ret->Set(0, Nan::New<v8::String>(dev.name).ToLocalChecked());
-    ret->Set(1, Nan::New<v8::Number>(dev.memory));
-    ret->Set(2, Nan::New<v8::Uint32>(dev.bits));
-    ret->Set(3, Nan::New<v8::Uint32>(dev.clock_rate));
+    Nan::Set(ret, 0, Nan::New<v8::String>(dev.name).ToLocalChecked());
+    Nan::Set(ret, 1, Nan::New<v8::Number>(dev.memory));
+    Nan::Set(ret, 2, Nan::New<v8::Uint32>(dev.bits));
+    Nan::Set(ret, 3, Nan::New<v8::Uint32>(dev.clock_rate));
 
-    rets->Set(i, ret);
+    Nan::Set(rets, i, ret);
   }
 #endif
 
