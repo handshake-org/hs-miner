@@ -1,5 +1,7 @@
-all:
-	@npm run install-main
+all: install-deps main
+
+install-deps:
+	@npm install
 
 main:
 	@npm run install-main
