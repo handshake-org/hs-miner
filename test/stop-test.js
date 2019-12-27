@@ -6,8 +6,8 @@ const miner = require('../');
 
 assert(process.argv.length >= 3);
 
-const hdr = crypto.randomBytes(164);
-hdr.fill(0, 144, 164);
+const hdr = crypto.randomBytes(236);
+hdr.fill(0, 216, 236);
 
 console.log('Running stop test for %s.', process.argv[2]);
 

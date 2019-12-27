@@ -3,21 +3,16 @@
     "hs_endian%": "<!(./scripts/get endian)",
     "hs_cudahas%": "<!(./scripts/get cuda_has)",
     "hs_cudalib%": "<!(./scripts/get cuda_lib)",
-    "hs_edgebits%": "<!(./scripts/get bits)",
-    "hs_proofsize%": "<!(./scripts/get size)",
-    "hs_perc%": "<!(./scripts/get perc)",
     "hs_network%": "<!(./scripts/get network)"
   },
   "targets": [{
     "target_name": "hsminer",
     "sources": [
       "./src/node/hs-miner.cc",
-      "./src/tromp/blake2b-ref.c",
-      "./src/sha3/sha3.c",
-      "./src/lean.cc",
-      "./src/mean.cc",
-      "./src/simple.cc",
-      "./src/verify.cc"
+      "./src/blake2b.c",
+      "./src/sha3.c",
+      "./src/header.c",
+      "./src/simple.cc"
     ],
     "cflags": [
       "-Wall",
@@ -43,9 +38,6 @@
     ],
     "defines": [
       "HS_NETWORK=<(hs_network)",
-      "EDGEBITS=<(hs_edgebits)",
-      "PROOFSIZE=<(hs_proofsize)",
-      "PERC=<(hs_perc)",
       "ATOMIC"
     ],
     "conditions": [
@@ -64,8 +56,7 @@
         ],
         "libraries": [
           "<(module_root_dir)/src/device.a",
-          "<(module_root_dir)/src/mean-cuda.a",
-          "<(module_root_dir)/src/lean-cuda.a",
+          "<(module_root_dir)/src/cuda.a",
           "-L<(hs_cudalib)",
           "-lcudart"
         ]

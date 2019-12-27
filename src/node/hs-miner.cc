@@ -15,7 +15,9 @@
 #include <nan.h>
 
 #include "hs-miner.h"
-#include "../tromp/blake2.h"
+#include "../header.h"
+#include "../blake2b.h"
+#include "../sha3.h"
 #include "../common.h"
 
 typedef std::unordered_map<uint32_t, hs_options_t *> job_map_t;
@@ -23,6 +25,19 @@ typedef std::unordered_map<uint32_t, hs_options_t *> job_map_t;
 static std::mutex m;
 static job_map_t job_map;
 static uint16_t job_counter = 0;
+
+int32_t
+hs_verify(
+  hs_header_t *hdr,
+  uint8_t *target
+) {
+  hs_header_verify_pow(hdr);
+
+  if (memcmp(hdr->hash, target, 32) > 0)
+    return 0;
+
+  return 1;
+}
 
 class MinerWorker : public Nan::AsyncWorker {
 public:
@@ -40,7 +55,6 @@ private:
   hs_options_t *options;
   hs_miner_func mine_func;
   int32_t rc;
-  uint8_t solution[PROOFSIZE * 4];
   uint32_t nonce;
   bool match;
 };
@@ -57,7 +71,6 @@ MinerWorker::MinerWorker (
   , match(false)
 {
   Nan::HandleScope scope;
-  memset(solution, 0, PROOFSIZE * 4);
 }
 
 MinerWorker::~MinerWorker() {
@@ -82,7 +95,7 @@ MinerWorker::Execute() {
 
   m.unlock();
 
-  rc = mine_func(options, solution, &nonce, &match);
+  rc = mine_func(options, &nonce, &match);
 
   m.lock();
 
@@ -115,7 +128,7 @@ MinerWorker::Execute() {
       break;
     }
     case HS_ENOSUPPORT: {
-      SetErrorMessage("Miner not supported with current cuckoo params.");
+      SetErrorMessage("Miner not supported with current pow params.");
       break;
     }
     case HS_EMAXLOAD: {
@@ -148,9 +161,8 @@ MinerWorker::HandleOKCallback() {
 
   if (rc == HS_ENOSOLUTION) {
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
-    Nan::Set(ret, 0, Nan::Null());
-    Nan::Set(ret, 1, Nan::New<v8::Uint32>(0));
-    Nan::Set(ret, 2, Nan::New<v8::Boolean>(false));
+    Nan::Set(ret, 0, Nan::New<v8::Uint32>(0));
+    Nan::Set(ret, 1, Nan::New<v8::Boolean>(false));
     v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
     callback->Call(2, argv, async_resource);
     return;
@@ -158,10 +170,8 @@ MinerWorker::HandleOKCallback() {
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-  Nan::Set(ret, 0,
-    Nan::CopyBuffer((char *)solution, PROOFSIZE * 4).ToLocalChecked());
-  Nan::Set(ret, 1, Nan::New<v8::Uint32>(nonce));
-  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 0, Nan::New<v8::Uint32>(nonce));
+  Nan::Set(ret, 1, Nan::New<v8::Boolean>(match));
 
   v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
 
@@ -174,24 +184,12 @@ get_miner_func(const char *backend, bool *is_cuda) {
     *is_cuda = false;
 
 #ifdef HS_HAS_CUDA
-  if (strcmp(backend, "mean-cuda") == 0) {
+  if (strcmp(backend, "cuda") == 0) {
     if (is_cuda)
       *is_cuda = true;
-    return hs_mean_cuda_run;
-  }
-
-  if (strcmp(backend, "lean-cuda") == 0) {
-    if (is_cuda)
-      *is_cuda = true;
-    return hs_lean_cuda_run;
+    return hs_cuda_run;
   }
 #endif
-
-  if (strcmp(backend, "mean") == 0)
-    return hs_mean_run;
-
-  if (strcmp(backend, "lean") == 0)
-    return hs_lean_run;
 
   if (strcmp(backend, "simple") == 0)
     return hs_simple_run;
@@ -226,9 +224,6 @@ NAN_METHOD(mine) {
     return Nan::ThrowTypeError("`threads` must be a number.");
 
   if (!info[6]->IsNumber())
-    return Nan::ThrowTypeError("`trims` must be a number.");
-
-  if (!info[7]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
@@ -256,7 +251,6 @@ NAN_METHOD(mine) {
   uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
   uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
   uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
-  uint32_t trims = Nan::To<uint32_t>(info[6]).FromJust();
   uint32_t device = Nan::To<uint32_t>(info[7]).FromJust();
 
   hs_options_t options;
@@ -266,16 +260,14 @@ NAN_METHOD(mine) {
   options.range = range;
   memcpy(&options.target[0], target, 32);
   options.threads = threads;
-  options.trims = trims;
   options.device = device;
   options.log = false;
   options.is_cuda = false;
   options.running = true;
 
-  uint8_t solution[PROOFSIZE * 4];
   bool match;
 
-  int32_t rc = mine_func(&options, solution, &nonce, &match);
+  int32_t rc = mine_func(&options, &nonce, &match);
 
   switch (rc) {
     case HS_SUCCESS: {
@@ -297,7 +289,7 @@ NAN_METHOD(mine) {
       return Nan::ThrowError("Invalid CUDA device properties.");
     }
     case HS_ENOSUPPORT: {
-      return Nan::ThrowError("Miner not supported with current cuckoo params.");
+      return Nan::ThrowError("Miner not supported with current pow params.");
     }
     case HS_EMAXLOAD: {
       return Nan::ThrowError("Max load exceeded.");
@@ -324,16 +316,14 @@ NAN_METHOD(mine) {
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-  Nan::Set(ret, 0,
-    Nan::CopyBuffer((char *)solution, PROOFSIZE * 4).ToLocalChecked());
-  Nan::Set(ret, 1, Nan::New<v8::Uint32>(nonce));
-  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 0, Nan::New<v8::Uint32>(nonce));
+  Nan::Set(ret, 1, Nan::New<v8::Boolean>(match));
 
   info.GetReturnValue().Set(ret);
 }
 
 NAN_METHOD(mine_async) {
-  if (info.Length() < 9)
+  if (info.Length() < 8)
     return Nan::ThrowError("mine_async() requires arguments.");
 
   if (!info[0]->IsString())
@@ -359,12 +349,9 @@ NAN_METHOD(mine_async) {
     return Nan::ThrowTypeError("`threads` must be a number.");
 
   if (!info[6]->IsNumber())
-    return Nan::ThrowTypeError("`trims` must be a number.");
-
-  if (!info[7]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
-  if (!info[8]->IsFunction())
+  if (!info[7]->IsFunction())
     return Nan::ThrowTypeError("`callback` must be a function.");
 
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
@@ -393,10 +380,9 @@ NAN_METHOD(mine_async) {
   uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
   uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
   uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
-  uint32_t trims = Nan::To<uint32_t>(info[6]).FromJust();
-  uint32_t device = Nan::To<uint32_t>(info[7]).FromJust();
+  uint32_t device = Nan::To<uint32_t>(info[6]).FromJust();
 
-  v8::Local<v8::Function> callback = info[8].As<v8::Function>();
+  v8::Local<v8::Function> callback = info[7].As<v8::Function>();
 
   hs_options_t *options = (hs_options_t *)malloc(sizeof(hs_options_t));
 
@@ -409,7 +395,6 @@ NAN_METHOD(mine_async) {
   options->range = range;
   memcpy(&options->target[0], target, 32);
   options->threads = threads;
-  options->trims = trims;
   options->device = device;
   options->log = false;
   options->is_cuda = is_cuda;
@@ -498,18 +483,14 @@ NAN_METHOD(stop_all) {
 }
 
 NAN_METHOD(verify) {
-  if (info.Length() < 3)
+  if (info.Length() < 2)
     return Nan::ThrowError("verify() requires arguments.");
 
   v8::Local<v8::Object> hdr_buf = info[0].As<v8::Object>();
-  v8::Local<v8::Object> sol_buf = info[1].As<v8::Object>();
-  v8::Local<v8::Object> target_buf = info[2].As<v8::Object>();
+  v8::Local<v8::Object> target_buf = info[1].As<v8::Object>();
 
   if (!node::Buffer::HasInstance(hdr_buf))
     return Nan::ThrowTypeError("`header` must be a buffer.");
-
-  if (!node::Buffer::HasInstance(sol_buf))
-    return Nan::ThrowTypeError("`solution` must be a buffer.");
 
   if (!node::Buffer::HasInstance(target_buf))
     return Nan::ThrowTypeError("`target` must be a buffer.");
@@ -520,12 +501,6 @@ NAN_METHOD(verify) {
   if (hdr_len < MIN_HEADER_SIZE || hdr_len > MAX_HEADER_SIZE)
     return Nan::ThrowTypeError("Invalid header size.");
 
-  const uint8_t *solution = (const uint8_t *)node::Buffer::Data(sol_buf);
-  size_t solution_len = node::Buffer::Length(sol_buf);
-
-  if (solution_len != PROOFSIZE * 4)
-    return Nan::ThrowTypeError("Invalid proof size.");
-
   const uint8_t *target = (const uint8_t *)node::Buffer::Data(target_buf);
   size_t target_len = node::Buffer::Length(target_buf);
 
@@ -533,9 +508,7 @@ NAN_METHOD(verify) {
     return Nan::ThrowTypeError("Invalid target size.");
 
   int32_t rc = hs_verify(
-    (uint8_t *)hdr,
-    hdr_len,
-    (uint8_t *)solution,
+    (hs_header_t *)hdr,
     (uint8_t *)target
   );
 
@@ -556,14 +529,19 @@ NAN_METHOD(blake2b) {
 
   uint8_t hash[32];
 
-  blake2b(
-    (void *)hash,
-    sizeof(hash),
-    (const void *)data,
-    data_len,
-    NULL,
-    0
-  );
+  hs_blake2b_ctx b_ctx;
+  assert(hs_blake2b_init(&b_ctx, 32) == 0);
+  hs_blake2b_update(&b_ctx, data, data_len);
+  assert(hs_blake2b_final(&b_ctx, hash, 32) == 0);
+
+  //blake2b(
+    //(void *)hash,
+    //sizeof(hash),
+    //(const void *)data,
+    //data_len,
+    //NULL,
+    //0
+  //);
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }
@@ -582,37 +560,12 @@ NAN_METHOD(sha3) {
 
   uint8_t hash[32];
 
-  hs_pow_hash(data, data_len, hash);
+  hs_sha3_ctx s_ctx;
+  hs_sha3_256_init(&s_ctx);
+  hs_sha3_update(&s_ctx, data, data_len);
+  hs_sha3_final(&s_ctx, hash);
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
-}
-
-NAN_METHOD(get_edge_bits) {
-  if (info.Length() != 0)
-    return Nan::ThrowError("get_edge_bits() requires no arguments.");
-
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(EDGEBITS));
-}
-
-NAN_METHOD(get_proof_size) {
-  if (info.Length() != 0)
-    return Nan::ThrowError("get_proof_size() requires no arguments.");
-
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(PROOFSIZE));
-}
-
-NAN_METHOD(get_perc) {
-  if (info.Length() != 0)
-    return Nan::ThrowError("get_perc() requires no arguments.");
-
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(PERC));
-}
-
-NAN_METHOD(get_easiness) {
-  if (info.Length() != 0)
-    return Nan::ThrowError("get_easiness() requires no arguments.");
-
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(EASINESS));
 }
 
 NAN_METHOD(get_network) {
@@ -635,22 +588,8 @@ NAN_METHOD(get_backends) {
 
   Nan::Set(ret, i++, Nan::New<v8::String>("simple").ToLocalChecked());
 
-#if EDGEBITS >= 5
-  Nan::Set(ret, i++, Nan::New<v8::String>("lean").ToLocalChecked());
-#endif
-
-#if EDGEBITS >= 28
-  Nan::Set(ret, i++, Nan::New<v8::String>("mean").ToLocalChecked());
-#endif
-
 #ifdef HS_HAS_CUDA
-#if EDGEBITS >= 5
-  Nan::Set(ret, i++, Nan::New<v8::String>("lean-cuda").ToLocalChecked());
-#endif
-
-#if EDGEBITS >= 28
-  Nan::Set(ret, i++, Nan::New<v8::String>("mean-cuda").ToLocalChecked());
-#endif
+  Nan::Set(ret, i++, Nan::New<v8::String>("cuda").ToLocalChecked());
 #endif
 
   info.GetReturnValue().Set(ret);
@@ -727,10 +666,6 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "verify", verify);
   Nan::Export(target, "blake2b", blake2b);
   Nan::Export(target, "sha3", sha3);
-  Nan::Export(target, "getEdgeBits", get_edge_bits);
-  Nan::Export(target, "getProofSize", get_proof_size);
-  Nan::Export(target, "getPerc", get_perc);
-  Nan::Export(target, "getEasiness", get_easiness);
   Nan::Export(target, "getNetwork", get_network);
   Nan::Export(target, "getBackends", get_backends);
   Nan::Export(target, "hasCUDA", has_cuda);

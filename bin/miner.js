@@ -9,7 +9,6 @@ class Miner {
     this.backend = options.backend || miner.BACKEND;
     this.range = options.range || 0;
     this.threads = options.threads || 0;
-    this.trims = options.trims || 0;
     this.device = options.device == null ? -1 : options.device;
     this.ssl = options.ssl || false;
     this.host = options.host || 'localhost';
@@ -45,9 +44,6 @@ class Miner {
     this.log('  Backend: %s', this.backend);
     this.log('  CUDA: %s', miner.HAS_CUDA);
     this.log('  Network: %s', miner.NETWORK);
-    this.log('  Edge Bits: %d', miner.EDGE_BITS);
-    this.log('  Proof Size: %d', miner.PROOF_SIZE);
-    this.log('  Easipct: %d', miner.PERC);
     this.log('');
 
     if (miner.HAS_CUDA) {
@@ -137,6 +133,7 @@ class Miner {
       process.exit(1);
     }
 
+    debugger
     if (res.data.length !== miner.HDR_SIZE * 2)
       throw new Error('Bad header size.');
 
@@ -192,14 +189,10 @@ class Miner {
     return res;
   }
 
-  toBlock(hdr, nonce, sol) {
+  toBlock(hdr, nonce) {
     assert(hdr.length === miner.HDR_SIZE);
-    const raw = Buffer.allocUnsafe(hdr.length + 1 + sol.length);
-    hdr.copy(raw, 0);
-    raw.writeUInt32LE(nonce >>> 0, hdr.length - 4);
-    raw[hdr.length] = sol.length >>> 2;
-    sol.copy(raw, hdr.length + 1);
-    return raw;
+    hdr.writeUInt32LE(nonce, 0, 4);
+    return hdr;
   }
 
   job(index, hdr, target) {
@@ -209,7 +202,6 @@ class Miner {
       range: this.range,
       target,
       threads: this.threads,
-      trims: this.trims,
       device: index
     });
   }
@@ -228,18 +220,13 @@ class Miner {
     const result = await Promise.all(jobs);
 
     for (let i = 0; i < result.length; i++) {
-      const [sol, nonce, match] = result[i];
+      const [nonce, match] = result[i];
 
       if (match)
-        return [sol, nonce];
-
-      if (sol) {
-        const hash = miner.sha3(sol, 'hex');
-        this.log('Best share: %s with %d (device=%d)', hash, nonce, i);
-      }
+        return [nonce, true];
     }
 
-    return [null, 0];
+    return [nonce, false];
   }
 
   getJob() {
@@ -255,7 +242,6 @@ class Miner {
   }
 
   async _work() {
-    let sol = null;
     let nonce;
 
     for (;;) {
@@ -269,8 +255,10 @@ class Miner {
       this.log('Mining height %d (target=%s).',
         height, target.toString('hex'));
 
+      let valid = true;
+
       try {
-        [sol, nonce] = await this.mine(hdr, target);
+        [nonce, valid] = await this.mine(hdr, target);
       } catch (e) {
         this.error(e.stack);
         continue;
@@ -281,17 +269,10 @@ class Miner {
         continue;
       }
 
-      if (!sol) {
-        increment(hdr, this.now());
-        continue;
-      }
-
-      this.log('Found solution: %d %s',
-        nonce, miner.sha3(sol).toString('hex'));
+      this.log('Found valid nonce: %d', nonce);
 
       const raw = this.toBlock(hdr, nonce, sol);
 
-      let valid = true;
       let reason = '';
 
       try {
@@ -412,8 +393,6 @@ function writeTime(hdr, time, off) {
 
 function readHeader(hdr) {
   let hash = undefined;
-  let solution = undefined;
-  let powHash = undefined;
 
   if (hdr.length > miner.HDR_SIZE) {
     const size = hdr[miner.HDR_SIZE] * 4;
@@ -424,17 +403,13 @@ function readHeader(hdr) {
     assert(hdr.length === off + size);
 
     hash = miner.blake2b(hdr, 'hex');
-    solution = hdr.slice(off, off + size);
-    powHash = miner.sha3(solution, 'hex');
 
-    solution = solution.toString('hex');
   } else {
     assert(hdr.length === miner.HDR_SIZE);
   }
 
   return {
     hash,
-    powHash,
     version: hdr.readUInt32LE(0),
     prevBlock: hdr.toString('hex', 4, 36),
     merkleRoot: hdr.toString('hex', 36, 68),
@@ -442,8 +417,7 @@ function readHeader(hdr) {
     reservedRoot: hdr.toString('hex', 100, 132),
     time: readTime(hdr, 132),
     bits: hdr.readUInt32LE(140),
-    nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE),
-    solution
+    nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE)
   };
 }
 

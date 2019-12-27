@@ -1,20 +1,12 @@
 #!/bin/bash
 
 MAIN_BITS=29
-MAIN_SIZE=42
-MAIN_PERC=50
 
 TESTNET_BITS=23
-TESTNET_SIZE=42
-TESTNET_PERC=50
 
 REGTEST_BITS=7
-REGTEST_SIZE=4
-REGTEST_PERC=50
 
 SIMNET_BITS=15
-SIMNET_SIZE=18
-SIMNET_PERC=50
 
 NETWORK=$(test -n "$HS_NETWORK" && echo "$HS_NETWORK" || echo 'testnet')
 
@@ -103,46 +95,6 @@ case "$1" in
       ;;
       simnet)
         echo "$SIMNET_BITS"
-      ;;
-      *)
-        echo 'Bad network.' 2>& 1
-        exit 1
-      ;;
-    esac
-  ;;
-  size)
-    case "$NETWORK" in
-      main)
-        echo "$MAIN_SIZE"
-      ;;
-      testnet)
-        echo "$TESTNET_SIZE"
-      ;;
-      regtest)
-        echo "$REGTEST_SIZE"
-      ;;
-      simnet)
-        echo "$SIMNET_SIZE"
-      ;;
-      *)
-        echo 'Bad network.' 2>& 1
-        exit 1
-      ;;
-    esac
-  ;;
-  perc)
-    case "$NETWORK" in
-      main)
-        echo "$MAIN_PERC"
-      ;;
-      testnet)
-        echo "$TESTNET_PERC"
-      ;;
-      regtest)
-        echo "$REGTEST_PERC"
-      ;;
-      simnet)
-        echo "$SIMNET_PERC"
       ;;
       *)
         echo 'Bad network.' 2>& 1

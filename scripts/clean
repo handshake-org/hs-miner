@@ -26,9 +26,16 @@ cd ${dir}/..
 
 set -ex
 
-rm -rf cuckoo
 rm -f src/device.a
-rm -f src/mean-cuda.a
-rm -f src/lean-cuda.a
+rm -f src/blake2b.a
+rm -f src/sha3.a
+
+rm -f src/device.o
+rm -f src/blake2b.o
+rm -f src/sha3.o
+
+rm -f src/cuda/device.dlink.o
+rm -f src/cuda/blake2b.dlink.o
+rm -f src/cuda/sha3.dlink.o
 
 node-gyp clean
