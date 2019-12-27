@@ -16,7 +16,7 @@
 
 #include "hs-miner.h"
 #include "../header.h"
-#include "../blake2b.h"
+#include "../tromp/blake2.h"
 #include "../sha3.h"
 #include "../common.h"
 
@@ -529,7 +529,7 @@ NAN_METHOD(blake2b) {
 
   uint8_t hash[32];
 
-  hs_blake2b(
+  blake2b(
     (void *)hash,
     sizeof(hash),
     (const void *)data,
