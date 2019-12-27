@@ -529,19 +529,14 @@ NAN_METHOD(blake2b) {
 
   uint8_t hash[32];
 
-  hs_blake2b_ctx b_ctx;
-  assert(hs_blake2b_init(&b_ctx, 32) == 0);
-  hs_blake2b_update(&b_ctx, data, data_len);
-  assert(hs_blake2b_final(&b_ctx, hash, 32) == 0);
-
-  //blake2b(
-    //(void *)hash,
-    //sizeof(hash),
-    //(const void *)data,
-    //data_len,
-    //NULL,
-    //0
-  //);
+  hs_blake2b(
+    (void *)hash,
+    sizeof(hash),
+    (const void *)data,
+    data_len,
+    NULL,
+    0
+  );
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }

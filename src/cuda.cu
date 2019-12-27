@@ -588,7 +588,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 
     BYTE * in;
     BYTE * out;
-    int n_outbit = 32, n_batch = 1024, inlen = 0, nonce = 0;
+    int n_outbit = 256, n_batch = 1, inlen = 0, nonce = 0;
 
     const WORD BLAKE2B_BLOCK_SIZE = (n_outbit >> 3);
     cudaMalloc(&cuda_indata, inlen * n_batch);
@@ -597,7 +597,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     CUDA_BLAKE2B_CTX ctx;
     cpu_blake2b_init(&ctx, NULL, 0, n_outbit);
 
-    cudaMemcpy(cuda_indata, in, inlen * n_batch, cudaMemcpyHostToDevice);
+    cudaMemcpy(cuda_indata, NULL, 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(c_CTX, &ctx, sizeof(CUDA_BLAKE2B_CTX), 0, cudaMemcpyHostToDevice);
 
     WORD thread = 256;

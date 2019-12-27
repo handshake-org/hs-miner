@@ -226,7 +226,7 @@ class Miner {
         return [nonce, true];
     }
 
-    return [nonce, false];
+    return [0, false];
   }
 
   getJob() {
@@ -271,7 +271,7 @@ class Miner {
 
       this.log('Found valid nonce: %d', nonce);
 
-      const raw = this.toBlock(hdr, nonce, sol);
+      const raw = this.toBlock(hdr, nonce);
 
       let reason = '';
 
