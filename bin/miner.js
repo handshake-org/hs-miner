@@ -392,32 +392,19 @@ function writeTime(hdr, time, off) {
 }
 
 function readHeader(hdr) {
-  let hash = undefined;
-
-  if (hdr.length > miner.HDR_SIZE) {
-    const size = hdr[miner.HDR_SIZE] * 4;
-    assert(size === miner.PROOF_SIZE * 4);
-
-    const off = miner.HDR_SIZE + 1;
-
-    assert(hdr.length === off + size);
-
-    hash = miner.blake2b(hdr, 'hex');
-
-  } else {
-    assert(hdr.length === miner.HDR_SIZE);
-  }
-
   return {
-    hash,
-    version: hdr.readUInt32LE(0),
-    prevBlock: hdr.toString('hex', 4, 36),
-    merkleRoot: hdr.toString('hex', 36, 68),
-    treeRoot: hdr.toString('hex', 68, 100),
-    reservedRoot: hdr.toString('hex', 100, 132),
-    time: readTime(hdr, 132),
-    bits: hdr.readUInt32LE(140),
-    nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE)
+    nonce: hdr.readUInt32LE(0),
+    time: readTime(hdr, 4),
+    padding: hdr.toString('hex', 12, 32),
+    prevBlock: hdr.toString('hex', 32, 64),
+    treeRoot: hdr.toString('hex', 64, 96),
+    maskHash: hdr.toString('hex', 96, 128),
+    extraNonce: hdr.toString('hex', 128, 24),
+    reservedRoot: hdr.toString('hex', 152, 184),
+    witnessRoot: hdr.toString('hex', 184, 216),
+    merkleRoot: hdr.toString('hex', 216, 248),
+    version: hdr.readUInt32LE(248),
+    bits: hdr.readUInt32LE(252),
   };
 }
 
