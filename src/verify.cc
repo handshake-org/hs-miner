@@ -12,8 +12,8 @@ hs_verify(
 
   hs_header_hash(hdr, hash);
 
-  if (memcmp(hash, target, 32) <= 0)
-    return HS_SUCCESS;
+  if (memcmp(hash, target, 32) > 0)
+    return HS_ENOSOLUTION;
 
-  return HS_ENOSOLUTION;
+  return HS_SUCCESS;
 }
