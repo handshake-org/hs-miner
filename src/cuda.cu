@@ -583,47 +583,43 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
-    BYTE * cuda_indata;
-    BYTE * cuda_outdata;
+    uint32_t nonce = options->nonce;
+    uint32_t range = options->range;;
+    size_t header_len = options->header_len;
+    hs_header_t header[MAX_HEADER_SIZE];
+    uint8_t hash[32];
 
-    BYTE * in;
-    BYTE * out;
-    int n_outbit = 256, n_batch = 1, inlen = 0, nonce = 0;
+    memset(hash, 0xff, 32);
 
-    const WORD BLAKE2B_BLOCK_SIZE = (n_outbit >> 3);
-    cudaMalloc(&cuda_indata, inlen * n_batch);
-    cudaMalloc(&cuda_outdata, BLAKE2B_BLOCK_SIZE * n_batch);
+    if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
+        return HS_EBADARGS;
 
-    CUDA_BLAKE2B_CTX ctx;
-    cpu_blake2b_init(&ctx, NULL, 0, n_outbit);
+    memcpy(header, options->header, header_len);
 
-    cudaMemcpy(cuda_indata, NULL, 0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(c_CTX, &ctx, sizeof(CUDA_BLAKE2B_CTX), 0, cudaMemcpyHostToDevice);
+    if (options->range)
+        range = options->range;
 
-    WORD thread = 256;
-    WORD block = (n_batch + thread - 1) / thread;
+    for (uint32_t r = 0; r < range; r++) {
+        if (!options->running)
+            break;
 
-    kernel_blake2b_hash << < block, thread >> > (cuda_indata, inlen, cuda_outdata, n_batch, BLAKE2B_BLOCK_SIZE);
-    cudaMemcpy(out, cuda_outdata, BLAKE2B_BLOCK_SIZE * n_batch, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    cudaError_t error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        printf("Error cuda blake2b hash: %s \n", cudaGetErrorString(error));
+        header->nonce = nonce + r;
+        header->cache = false;
+
+        //printf("nonce: %d\n", header->nonce);
+
+        hs_header_hash(header, hash);
+
+        //for (uint i=0; i < sizeof(hash); i++)
+        //printf("%02x", hash[i]);
+        //printf("\n");
+
+        if (memcmp(hash, options->target, 32) <= 0) {
+            *result = header->nonce;
+            *match = true;
+            return HS_SUCCESS;
+        }
     }
 
-    const WORD KECCAK_BLOCK_SIZE = (n_outbit >> 3);
-    cudaMalloc(&cuda_indata, inlen * n_batch);
-    cudaMalloc(&cuda_outdata, KECCAK_BLOCK_SIZE * n_batch);
-    cudaMemcpy(cuda_indata, in, inlen * n_batch, cudaMemcpyHostToDevice);
-
-    kernel_keccak_hash << < block, thread >> > (cuda_indata, inlen, cuda_outdata, n_batch, KECCAK_BLOCK_SIZE);
-    cudaMemcpy(out, cuda_outdata, KECCAK_BLOCK_SIZE * n_batch, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    if (error != cudaSuccess) {
-        printf("Error cuda keccak hash: %s \n", cudaGetErrorString(error));
-    }
-    cudaFree(cuda_indata);
-    cudaFree(cuda_outdata);
-
-    return nonce;
+    return HS_ENOSOLUTION;
 }
