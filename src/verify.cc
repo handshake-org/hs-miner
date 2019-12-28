@@ -15,5 +15,5 @@ hs_verify(
   if (memcmp(hash, target, 32) <= 0)
     return HS_SUCCESS;
 
-  return HS_EFAILURE;
+  return HS_ENOSOLUTION;
 }

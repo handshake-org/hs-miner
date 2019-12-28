@@ -14,7 +14,6 @@ hs_simple_run(
   size_t header_len = options->header_len;
   hs_header_t header[MAX_HEADER_SIZE];
   uint8_t hash[32];
-  uint8_t chash[32];
 
   memset(hash, 0xff, 32);
 
@@ -30,18 +29,23 @@ hs_simple_run(
     if (!options->running)
       break;
 
-    hs_header_hash(header, chash);
+    header->nonce = nonce + r;
+    header->cache = false;
 
-    if (memcmp(chash, hash, 32) <= 0) {
-      *result = nonce + r;
-      memcpy(hash, chash, 32);
-    }
+    //printf("nonce: %d\n", header->nonce);
 
-    if (memcmp(chash, options->target, 32) <= 0) {
+    hs_header_hash(header, hash);
+
+    //for (uint i=0; i < sizeof(hash); i++)
+    //printf("%02x", hash[i]);
+    //printf("\n");
+
+    if (memcmp(hash, options->target, 32) <= 0) {
+      *result = header->nonce;
       *match = true;
       return HS_SUCCESS;
     }
   }
 
-  return HS_EFAILURE;
+  return HS_ENOSOLUTION;
 }

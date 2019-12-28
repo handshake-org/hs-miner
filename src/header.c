@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "bio.h"
-#include "blake2b.h"
+#include "tromp/blake2.h"
 #include "error.h"
 #include "header.h"
 #include "sha3.h"
@@ -174,19 +174,19 @@ hs_header_sub_hash(const hs_header_t *hdr, uint8_t *hash) {
   uint8_t sub[size];
   hs_header_sub_encode(hdr, sub);
 
-  hs_blake2b_ctx ctx;
-  assert(hs_blake2b_init(&ctx, 32) == 0);
-  hs_blake2b_update(&ctx, sub, size);
-  assert(hs_blake2b_final(&ctx, hash, 32) == 0);
+  blake2b_state ctx;
+  assert(blake2b_init(&ctx, 32) == 0);
+  blake2b_update(&ctx, sub, size);
+  assert(blake2b_final(&ctx, hash, 32) == 0);
 }
 
 void
 hs_header_mask_hash(const hs_header_t *hdr, uint8_t *hash) {
-  hs_blake2b_ctx ctx;
-  assert(hs_blake2b_init(&ctx, 32) == 0);
-  hs_blake2b_update(&ctx, hdr->prev_block, 32);
-  hs_blake2b_update(&ctx, hdr->mask, 32);
-  assert(hs_blake2b_final(&ctx, hash, 32) == 0);
+  blake2b_state ctx;
+  assert(blake2b_init(&ctx, 32) == 0);
+  blake2b_update(&ctx, hdr->prev_block, 32);
+  blake2b_update(&ctx, hdr->mask, 32);
+  assert(blake2b_final(&ctx, hash, 32) == 0);
 }
 
 void
@@ -197,11 +197,11 @@ hs_header_commit_hash(const hs_header_t *hdr, uint8_t *hash) {
   hs_header_sub_hash(hdr, sub_hash);
   hs_header_mask_hash(hdr, mask_hash);
 
-  hs_blake2b_ctx ctx;
-  assert(hs_blake2b_init(&ctx, 32) == 0);
-  hs_blake2b_update(&ctx, sub_hash, 32);
-  hs_blake2b_update(&ctx, mask_hash, 32);
-  assert(hs_blake2b_final(&ctx, hash, 32) == 0);
+  blake2b_state ctx;
+  assert(blake2b_init(&ctx, 32) == 0);
+  blake2b_update(&ctx, sub_hash, 32);
+  blake2b_update(&ctx, mask_hash, 32);
+  assert(blake2b_final(&ctx, hash, 32) == 0);
 }
 
 void
@@ -237,10 +237,10 @@ hs_header_cache(hs_header_t *hdr) {
 
   // Generate left.
   hs_header_pre_encode(hdr, pre);
-  hs_blake2b_ctx ctx;
-  assert(hs_blake2b_init(&ctx, 64) == 0);
-  hs_blake2b_update(&ctx, pre, size);
-  assert(hs_blake2b_final(&ctx, left, 64) == 0);
+  blake2b_state ctx;
+  assert(blake2b_init(&ctx, 64) == 0);
+  blake2b_update(&ctx, pre, size);
+  assert(blake2b_final(&ctx, left, 64) == 0);
 
   // Generate right.
   hs_sha3_ctx s_ctx;
@@ -250,12 +250,12 @@ hs_header_cache(hs_header_t *hdr) {
   hs_sha3_final(&s_ctx, right);
 
   // Generate hash.
-  hs_blake2b_ctx b_ctx;
-  assert(hs_blake2b_init(&b_ctx, 32) == 0);
-  hs_blake2b_update(&b_ctx, left, 64);
-  hs_blake2b_update(&b_ctx, pad32, 32);
-  hs_blake2b_update(&b_ctx, right, 32);
-  assert(hs_blake2b_final(&b_ctx, hdr->hash, 32) == 0);
+  blake2b_state b_ctx;
+  assert(blake2b_init(&b_ctx, 32) == 0);
+  blake2b_update(&b_ctx, left, 64);
+  blake2b_update(&b_ctx, pad32, 32);
+  blake2b_update(&b_ctx, right, 32);
+  assert(blake2b_final(&b_ctx, hdr->hash, 32) == 0);
 
   // XOR PoW hash with arbitrary bytes.
   // This can be used by mining pools to
