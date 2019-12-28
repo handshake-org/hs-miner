@@ -26,19 +26,6 @@ static std::mutex m;
 static job_map_t job_map;
 static uint16_t job_counter = 0;
 
-int32_t
-hs_verify(
-  hs_header_t *hdr,
-  uint8_t *target
-) {
-  hs_header_verify_pow(hdr);
-
-  if (memcmp(hdr->hash, target, 32) > 0)
-    return 0;
-
-  return 1;
-}
-
 class MinerWorker : public Nan::AsyncWorker {
 public:
   MinerWorker (

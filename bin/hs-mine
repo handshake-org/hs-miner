@@ -23,6 +23,7 @@ let nonce;
 let range;
 let threads;
 let device;
+let mantissa;
 let quiet;
 let info;
 let version;
@@ -108,7 +109,7 @@ if (!quiet || info) {
 }
 
 (async () => {
-  const [nonce, match] = await miner.mineAsync(hdr, {
+  const [result, match] = await miner.mineAsync(hdr, {
     backend,
     nonce,
     range,
@@ -125,7 +126,7 @@ if (!quiet || info) {
 
   assert.strictEqual(miner.verify(hdr, match ? target : null), 0);
 
-  hdr.writeUint32LE(nonce, 0, 4);
+  hdr.writeUint32LE(result, 0, 4);
 
   if (!quiet)
     console.log('Mined header:');

@@ -10,6 +10,10 @@
 #include "sha3.h"
 #include "blake2b.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define MIN_HEADER_SIZE 4
 
 #ifndef MAX_HEADER_SIZE
@@ -85,8 +89,8 @@ hs_cuda_run(
 
 int32_t
 hs_verify(
-  const hs_header_t *hdr,
-  const uint8_t *target
+  hs_header_t *hdr,
+  uint8_t *target
 );
 
 static inline uint32_t
@@ -114,6 +118,10 @@ hs_write_u32(uint8_t *data, uint32_t num) {
   data[2] = (uint8_t)(num >> 16);
   data[3] = (uint8_t)(num >> 24);
 #endif
+}
+#endif
+
+#if defined(__cplusplus)
 }
 #endif
 

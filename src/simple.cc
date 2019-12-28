@@ -42,5 +42,5 @@ hs_simple_run(
     }
   }
 
-  return HS_ENOSOLUTION;
+  return HS_EFAILURE;
 }

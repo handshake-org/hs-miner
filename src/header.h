@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct hs_header_s {
   // Preheader.
   uint32_t nonce;
@@ -112,4 +116,9 @@ hs_header_verify_pow(const hs_header_t *hdr);
 
 void
 hs_header_print(hs_header_t *hdr, const char *prefix);
+
+#if defined(__cplusplus)
+}
+#endif
+
 #endif

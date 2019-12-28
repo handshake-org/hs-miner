@@ -12,6 +12,7 @@
       "./src/tromp/blake2b-ref.c",
       "./src/sha3.c",
       "./src/header.c",
+      "./src/verify.cc",
       "./src/simple.cc"
     ],
     "cflags": [
