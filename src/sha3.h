@@ -20,6 +20,10 @@
 #ifndef _HS_SHA3_H
 #define _HS_SHA3_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define hs_sha3_224_hash_size  28
 #define hs_sha3_256_hash_size  32
 #define hs_sha3_384_hash_size  48
@@ -48,5 +52,9 @@ void hs_sha3_final(hs_sha3_ctx *ctx, unsigned char *result);
 #define hs_keccak_512_init hs_sha3_512_init
 #define hs_keccak_update hs_sha3_update
 void hs_keccak_final(hs_sha3_ctx *ctx, unsigned char *result);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
