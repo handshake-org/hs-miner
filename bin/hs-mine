@@ -126,12 +126,12 @@ if (!quiet || info) {
 
   assert.strictEqual(miner.verify(hdr, match ? target : null), 0);
 
-  hdr.writeUint32LE(result, 0, 4);
+  hdr.writeUInt32LE(result, 0, 4);
 
   if (!quiet)
     console.log('Mined header:');
 
-  console.log(raw.toString('hex'));
+  console.log(hdr.toString('hex'));
 })().catch((err) => {
   console.error(err.message);
   process.exit(1);

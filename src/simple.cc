@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include "common.h"
 
@@ -9,7 +10,7 @@ hs_simple_run(
   bool *match
 ) {
   uint32_t nonce = options->nonce;
-  uint32_t range = 1;
+  uint32_t range = options->range;;
   size_t header_len = options->header_len;
   hs_header_t header[MAX_HEADER_SIZE];
   uint8_t hash[32];

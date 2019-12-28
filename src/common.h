@@ -86,40 +86,13 @@ hs_cuda_run(
   uint32_t *result,
   bool *match
 );
+#endif
 
 int32_t
 hs_verify(
   hs_header_t *hdr,
   uint8_t *target
 );
-
-static inline uint32_t
-hs_read_u32(const uint8_t *data) {
-  uint32_t out;
-#ifdef HS_LITTLE_ENDIAN
-  memcpy(&out, data, 4);
-#else
-  out = 0;
-  out |= ((uint32_t)data[3]) << 24;
-  out |= ((uint32_t)data[2]) << 16;
-  out |= ((uint32_t)data[1]) << 8;
-  out |= (uint32_t)data[0];
-#endif
-  return out;
-}
-
-static inline void
-hs_write_u32(uint8_t *data, uint32_t num) {
-#ifdef HS_LITTLE_ENDIAN
-  memcpy(data, &num, 4);
-#else
-  data[0] = (uint8_t)num;
-  data[1] = (uint8_t)(num >> 8);
-  data[2] = (uint8_t)(num >> 16);
-  data[3] = (uint8_t)(num >> 24);
-#endif
-}
-#endif
 
 #if defined(__cplusplus)
 }

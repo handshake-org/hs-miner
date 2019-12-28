@@ -12,7 +12,7 @@ hs_verify(
 
   hs_header_hash(hdr, hash);
 
-  if (memcmp(hash, target, 32) > 0)
+  if (memcmp(hash, target, 32) <= 0)
     return HS_SUCCESS;
 
   return HS_EFAILURE;
