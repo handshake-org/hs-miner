@@ -44,6 +44,7 @@ try {
 } catch (e) {
   console.error(e.message);
   target = null;
+  mantissa = 0;
   info = false;
   version = false;
   help = true;
