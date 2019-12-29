@@ -685,11 +685,11 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     uint8_t commit_hash[32];
 
     memcpy(sub, extra_nonce, 24);
-    memcpy(sub, reserved_root, 32);
-    memcpy(sub, witness_root, 32);
-    memcpy(sub, merkle_root, 32);
-    memcpy(sub, &version, 4);
-    memcpy(sub, &bits, 4);
+    memcpy(sub + 24, reserved_root, 32);
+    memcpy(sub + 56, witness_root, 32);
+    memcpy(sub + 88, merkle_root, 32);
+    memcpy(sub + 120, &version, 4);
+    memcpy(sub + 124, &bits, 4);
 
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
     cuda_blake2b_update(&b_ctx, sub, 32);
@@ -707,11 +707,12 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
 
     // Generate left.
     memcpy(pre, &nonce, 4);
-    memcpy(pre, &time, 8);
-    memcpy(pre, pad, 20);
-    memcpy(pre, prev_block, 32);
-    memcpy(pre, tree_root, 32);
-    memcpy(pre, commit_hash, 32);
+    memcpy(pre + 4, &time, 8);
+    memcpy(pre + 12, pad, 20);
+    memcpy(pre + 32, prev_block, 32);
+    memcpy(pre + 64, tree_root, 32);
+    memcpy(pre + 96, commit_hash, 32);
+
 
     cuda_blake2b_update(&b_ctx, pre, 64);
     cuda_blake2b_final(&b_ctx, left);
@@ -758,12 +759,12 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 
         if (memcmp(hash, options->target, 32) <= 0) {
 
-            //printf("hash: out=");
-            //for (int j=0; j < 32; j++) {
-            //    printf("%02x", hash[j]);
-            //}
-            //printf("\n");
-            //printf("nonce: i=%d\n", i);
+            //   printf("hash: hash=");
+            //   for (int j=0; j < 32; j++) {
+            //       printf("%02x", hash[j]);
+            //   }
+            //   printf("\n");
+            //   printf("nonce: i=%d\n", i);
 
             *result = i;
             *match = true;
