@@ -729,12 +729,6 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     cuda_blake2b_update(&b_ctx, pad32, 32);
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
-
-    // XOR PoW hash with arbitrary bytes.
-    // This can be used by mining pools to
-    // mitigate block witholding attacks.
-    for (int i = 0; i < 32; i++)
-      hash[i] ^= mask[i];
 }
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
