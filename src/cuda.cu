@@ -651,7 +651,6 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     uint8_t bits;
     memcpy(&bits, header + 252, 4);
 
-    int size = 0;
     uint8_t pad[20];
     uint8_t pad8[8];
     uint8_t pad32[32];
@@ -675,14 +674,13 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     nonce += thread;
 
     uint8_t pre[128];
+    uint8_t sub[128];
     uint8_t left[64];
     uint8_t right[32];
-
     uint8_t sub_hash[32];
-
-    uint8_t sub[128];
     uint8_t commit_hash[32];
 
+    // subheader
     memcpy(sub, extra_nonce, 24);
     memcpy(sub + 24, reserved_root, 32);
     memcpy(sub + 56, witness_root, 32);
@@ -690,16 +688,18 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     memcpy(sub + 120, &version, 4);
     memcpy(sub + 124, &bits, 4);
 
+    // sub hash
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
-    cuda_blake2b_update(&b_ctx, sub, 32);
+    cuda_blake2b_update(&b_ctx, sub, 128);
     cuda_blake2b_final(&b_ctx, sub_hash);
 
+    // commit hash
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
-    cuda_blake2b_update(&b_ctx, sub_hash, 32);
+    cuda_blake2b_update(&b_ctx, sub_hash, 128);
     cuda_blake2b_update(&b_ctx, mask_hash, 32);
     cuda_blake2b_final(&b_ctx, commit_hash);
 
-    // Generate left.
+    // preheader
     memcpy(pre, &nonce, 4);
     memcpy(pre + 4, &time, 8);
     memcpy(pre + 12, pad, 20);
@@ -707,13 +707,14 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     memcpy(pre + 64, tree_root, 32);
     memcpy(pre + 96, commit_hash, 32);
 
-
-    cuda_blake2b_update(&b_ctx, pre, 64);
+    // Generate left.
+    cuda_blake2b_init(&b_ctx, NULL, 0, 512);
+    cuda_blake2b_update(&b_ctx, pre, 128);
     cuda_blake2b_final(&b_ctx, left);
 
     // Generate right.
     cuda_keccak_init(&s_ctx, 256);
-    cuda_keccak_update(&s_ctx, pre, size);
+    cuda_keccak_update(&s_ctx, pre, 128);
     cuda_keccak_update(&s_ctx, pad8, 8);
     cuda_keccak_final(&s_ctx, right);
 
