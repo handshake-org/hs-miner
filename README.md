@@ -113,8 +113,8 @@ console.log('Match: %s', match);
 
 ## Backends (so far)
 
-- cuda - POW miner with CUDA (`hsdminer.cu`).
-- CPU - Simple miner, mostly for testing (`cpuminer.cpp`).
+- cuda - POW miner with CUDA (`cuda.cu`).
+- CPU - Simple miner, mostly for testing (`simple.cc`).
 
 ## Platform Support
 
