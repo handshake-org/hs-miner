@@ -9,7 +9,7 @@
     "target_name": "hsminer",
     "sources": [
       "./src/node/hs-miner.cc",
-      "./src/tromp/blake2b-ref.c",
+      "./src/blake2b-ref.c",
       "./src/sha3.c",
       "./src/header.c",
       "./src/verify.cc",

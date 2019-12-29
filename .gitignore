@@ -1,5 +1,4 @@
 build/
-cuckoo/
 node_modules/
 npm-debug.log
 src/*.a

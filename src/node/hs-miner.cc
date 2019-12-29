@@ -16,7 +16,7 @@
 
 #include "hs-miner.h"
 #include "../header.h"
-#include "../tromp/blake2.h"
+#include "../blake2.h"
 #include "../sha3.h"
 #include "../common.h"
 

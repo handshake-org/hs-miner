@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "common.h"
-#include "tromp/blake2.h"
+#include "blake2.h"
 #include "sha3.h"
 #include "header.h"
 
@@ -260,9 +260,6 @@ __global__ void kernel_blake2b_hash(BYTE* indata, WORD inlen, BYTE* outdata, WOR
     //if not precomputed CTX, call cuda_blake2b_init() with key
     cuda_blake2b_update(&ctx, in, inlen);
     cuda_blake2b_final(&ctx, out);
-}
-
-void hs_cuda_blake2b_hash_batch(BYTE *key, WORD keylen, BYTE *in, WORD inlen, BYTE *out, WORD n_outbit, WORD n_batch) {
 }
 
 #define KECCAK_ROUND 24

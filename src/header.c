@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "bio.h"
-#include "tromp/blake2.h"
+#include "blake2.h"
 #include "error.h"
 #include "header.h"
 #include "sha3.h"
