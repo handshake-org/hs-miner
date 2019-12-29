@@ -179,7 +179,9 @@ __device__ void cuda_blake2b_init(cuda_blake2b_ctx_t *ctx, BYTE* key, WORD keyle
 
     memcpy(ctx->buff, key, keylen);
     memcpy(ctx->key, key, keylen);
-    ctx->pos = BLAKE2B_BLOCK_LENGTH;
+
+    if (keylen > 0)
+        ctx->pos = BLAKE2B_BLOCK_LENGTH;
 }
 
 __device__ void cuda_blake2b_update(cuda_blake2b_ctx_t *ctx, BYTE* in, LONG inlen)
@@ -645,10 +647,10 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     uint8_t merkle_root[32];
     memcpy(merkle_root, header + 216, 32);
 
-    uint8_t version;
+    uint32_t version;
     memcpy(&version, header + 248, 4);
 
-    uint8_t bits;
+    uint32_t bits;
     memcpy(&bits, header + 252, 4);
 
     uint8_t pad[20];
@@ -695,7 +697,7 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
 
     // commit hash
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
-    cuda_blake2b_update(&b_ctx, sub_hash, 128);
+    cuda_blake2b_update(&b_ctx, sub_hash, 32);
     cuda_blake2b_update(&b_ctx, mask_hash, 32);
     cuda_blake2b_final(&b_ctx, commit_hash);
 
@@ -755,13 +757,6 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
         memcpy(hash, out + 32 * i, 32);
 
         if (memcmp(hash, options->target, 32) <= 0) {
-            //   printf("hash: hash=");
-            //   for (int j=0; j < 32; j++) {
-            //       printf("%02x", hash[j]);
-            //   }
-            //   printf("\n");
-            //   printf("nonce: i=%d\n", i);
-
             free(out);
             free(hash);
 

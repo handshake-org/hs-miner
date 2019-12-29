@@ -185,7 +185,7 @@ get_miner_func(const char *backend, bool *is_cuda) {
 }
 
 NAN_METHOD(mine) {
-  if (info.Length() < 8)
+  if (info.Length() < 7)
     return Nan::ThrowError("mine() requires arguments.");
 
   if (!info[0]->IsString())
