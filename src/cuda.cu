@@ -739,7 +739,7 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
     unsigned int n_batch = options->range;
-    unsigned int thread = 1;
+    unsigned int thread = 256;
     unsigned int block = (n_batch + thread - 1) / thread;
     uint8_t *out;
     uint8_t *cuda_outdata;
@@ -753,21 +753,22 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     kernel_hs_hash<<< block, thread >>>(cuda_outdata, n_batch);
     cudaMemcpy(out, cuda_outdata, 32 * n_batch, cudaMemcpyDeviceToHost);
 
-    //for (int i=0; i < n_batch; i++) {
-    //  printf("hash: ");
-    //  for (int j=0; j < 32; j++) {
-    //    printf("%02x", out[j]);
-    //  }
-    //  printf("\n");
-    //}
-
     for (int i=0; i < n_batch; i++) {
-      memcpy(hash, out + 32 * i, 32);
-      if (memcmp(hash, options->target, 32) <= 0) {
-        *result = i;
-        *match = true;
-        return HS_SUCCESS;
-      }
+        memcpy(hash, out + 32 * i, 32);
+
+        if (memcmp(hash, options->target, 32) <= 0) {
+
+            //printf("hash: out=");
+            //for (int j=0; j < 32; j++) {
+            //    printf("%02x", hash[j]);
+            //}
+            //printf("\n");
+            //printf("nonce: i=%d\n", i);
+
+            *result = i;
+            *match = true;
+            return HS_SUCCESS;
+        }
     }
 
     return HS_ENOSOLUTION;
