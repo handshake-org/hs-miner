@@ -630,8 +630,8 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     uint8_t tree_root[32];
     memcpy(tree_root, header + 64, 32);
 
-    uint8_t mask[32];
-    memcpy(mask, header + 96, 32);
+    uint8_t mask_hash[32];
+    memcpy(mask_hash, header + 96, 32);
 
     uint8_t extra_nonce[24];
     memcpy(extra_nonce, header + 128, 24);
@@ -679,7 +679,6 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     uint8_t right[32];
 
     uint8_t sub_hash[32];
-    uint8_t mask_hash[32];
 
     uint8_t sub[128];
     uint8_t commit_hash[32];
@@ -694,11 +693,6 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
     cuda_blake2b_update(&b_ctx, sub, 32);
     cuda_blake2b_final(&b_ctx, sub_hash);
-
-    cuda_blake2b_init(&b_ctx, NULL, 0, 256);
-    cuda_blake2b_update(&b_ctx, prev_block, 32);
-    cuda_blake2b_update(&b_ctx, mask, 32);
-    cuda_blake2b_final(&b_ctx, mask_hash);
 
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
     cuda_blake2b_update(&b_ctx, sub_hash, 32);
