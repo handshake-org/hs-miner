@@ -753,12 +753,19 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 
     kernel_hs_hash<<< block, thread >>>(cuda_outdata, n_batch);
     cudaMemcpy(out, cuda_outdata, 32 * n_batch, cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
+        // TOOD: cudaFree?
+        return HS_ENOSOLUTION;
+    }
+    cudaFree(cuda_outdata);
 
     for (int i=0; i < n_batch; i++) {
         memcpy(hash, out + 32 * i, 32);
 
         if (memcmp(hash, options->target, 32) <= 0) {
-
             //   printf("hash: hash=");
             //   for (int j=0; j < 32; j++) {
             //       printf("%02x", hash[j]);
@@ -766,11 +773,16 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
             //   printf("\n");
             //   printf("nonce: i=%d\n", i);
 
+            free(out);
+            free(hash);
+
             *result = i;
             *match = true;
             return HS_SUCCESS;
         }
     }
 
+    free(out);
+    free(hash);
     return HS_ENOSOLUTION;
 }
