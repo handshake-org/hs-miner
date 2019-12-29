@@ -243,6 +243,7 @@ class Miner {
 
   async _work() {
     let nonce;
+    let valid;
 
     for (;;) {
       if (!this.mining)
@@ -255,13 +256,16 @@ class Miner {
       this.log('Mining height %d (target=%s).',
         height, target.toString('hex'));
 
-      let valid = true;
-
       try {
         [nonce, valid] = await this.mine(hdr, target);
       } catch (e) {
         this.error(e.stack);
         continue;
+      }
+
+      if (!valid) {
+        increment(hdr, this.now());
+        continue
       }
 
       if (root !== this.root) {
