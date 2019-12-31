@@ -755,6 +755,8 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
         // TOOD: cudaFree?
         return HS_ENOSOLUTION;
     }
+    cudaFree(out_nonce);
+    cudaFree(out_match);
 
     if (match)
         return HS_SUCCESS;
