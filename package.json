@@ -25,6 +25,7 @@
     "install-testnet": "./scripts/rebuild testnet",
     "install-regtest": "./scripts/rebuild regtest",
     "install-simnet": "./scripts/rebuild simnet",
+    "bench": "./bin/hs-bench",
     "clean": "./scripts/clean",
     "lint": "eslint bin/* lib/*.js test/*.js || exit 0",
     "test": "bmocha --reporter spec test/*-test.js"
