@@ -19,6 +19,7 @@
 #include "../blake2.h"
 #include "../sha3.h"
 #include "../common.h"
+#include "../error.h"
 
 typedef std::unordered_map<uint32_t, hs_options_t *> job_map_t;
 
@@ -102,7 +103,8 @@ MinerWorker::Execute() {
       SetErrorMessage("Miner failed.");
       break;
     }
-    case HS_EBADARGS: {
+    case HS_EBADARGS:
+    case HS_ENEGTARGET: {
       SetErrorMessage("Invalid mining arguments.");
       break;
     }
@@ -216,10 +218,7 @@ NAN_METHOD(mine) {
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
   size_t hdr_len = node::Buffer::Length(hdr_buf);
 
-  if (hdr_len < MIN_HEADER_SIZE || hdr_len > MAX_HEADER_SIZE)
-    return Nan::ThrowError("Invalid header size.");
-
-  if ((hdr_len % 4) != 0)
+  if (hdr_len != HEADER_SIZE)
     return Nan::ThrowError("Invalid header size.");
 
   const uint8_t *target = (const uint8_t *)node::Buffer::Data(target_buf);
@@ -344,10 +343,7 @@ NAN_METHOD(mine_async) {
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
   size_t hdr_len = node::Buffer::Length(hdr_buf);
 
-  if (hdr_len < MIN_HEADER_SIZE || hdr_len > MAX_HEADER_SIZE)
-    return Nan::ThrowError("Invalid header size.");
-
-  if ((hdr_len % 4) != 0)
+  if (hdr_len != HEADER_SIZE)
     return Nan::ThrowError("Invalid header size.");
 
   const uint8_t *target = (const uint8_t *)node::Buffer::Data(target_buf);
@@ -485,7 +481,7 @@ NAN_METHOD(verify) {
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
   size_t hdr_len = node::Buffer::Length(hdr_buf);
 
-  if (hdr_len < MIN_HEADER_SIZE || hdr_len > MAX_HEADER_SIZE)
+  if (hdr_len != HEADER_SIZE)
     return Nan::ThrowTypeError("Invalid header size.");
 
   const uint8_t *target = (const uint8_t *)node::Buffer::Data(target_buf);
