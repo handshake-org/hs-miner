@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "common.h"
+#include "header.h"
+#include "error.h"
 
 int32_t
 hs_simple_run(
@@ -9,43 +11,43 @@ hs_simple_run(
   uint32_t *result,
   bool *match
 ) {
-  uint32_t nonce = options->nonce;
-  uint32_t range = options->range;;
+  uint32_t nonce = 0;
+  uint32_t range = 1;
   size_t header_len = options->header_len;
-  hs_header_t header[MAX_HEADER_SIZE];
-  uint8_t hash[32];
+  hs_header_t header[HEADER_SIZE];
 
-  memset(hash, 0xff, 32);
-
-  if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
-    return HS_EBADARGS;
-
-  memcpy(header, options->header, header_len);
+  if (options->nonce)
+    nonce = options->nonce;
 
   if (options->range)
     range = options->range;
+
+  if (header_len != HEADER_SIZE)
+    return HS_EBADARGS;
+
+  hs_header_decode(options->header, header_len, header);
+
+  uint8_t hash[32];
+  memset(hash, 0xff, 32);
+
+  uint8_t target[32];
+  memcpy(target, options->target, 32);
 
   for (uint32_t r = 0; r < range; r++) {
     if (!options->running)
       break;
 
     header->nonce = nonce + r;
-    header->cache = false;
 
-    //printf("nonce: %d\n", header->nonce);
+    hs_header_pow(header, hash);
 
-    hs_header_hash(header, hash);
-
-    //for (uint i=0; i < sizeof(hash); i++)
-    //printf("%02x", hash[i]);
-    //printf("\n");
-
-    if (memcmp(hash, options->target, 32) <= 0) {
-      *result = header->nonce;
+    if (memcmp(hash, target, 32) < 0) {
       *match = true;
+      *result = header->nonce;
       return HS_SUCCESS;
     }
   }
 
   return HS_ENOSOLUTION;
 }
+
