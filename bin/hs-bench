@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+
+'use strict';
+
+process.title = 'hs-bench';
+
+const miner = require('../');
+
+const MEGA = 1e6;
+
+function bench(name) {
+  const start = process.hrtime();
+  return function end(ops) {
+    const elapsed = process.hrtime(start);
+    const time = elapsed[0] + elapsed[1] / 1e9;
+    const rate = ops / (MEGA * time);
+
+    console.log('%s: ops=%d, time=%d, rate=%s Mh/sec',
+      name, ops, time, rate.toFixed(5));
+  };
+};
+
+const mining = bench('hs-mine');
+const hdr = Buffer.alloc(256);
+
+for (let i=0; i<10; i++) {
+  miner.mine(hdr, {
+    backend: miner.BACKEND,
+    nonce: 0,
+    range: 1000000,
+    target: miner.TARGET,
+    threads: 1,
+    device: 0
+  });
+
+  mining(1000000);
+}
