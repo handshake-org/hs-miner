@@ -31,5 +31,5 @@ for (let i=0; i < 10; i++) {
     target: miner.TARGET,
     threads: THREADS
   });
-  mining(RANGE);
+  mining(THREADS);
 }
