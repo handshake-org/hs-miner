@@ -6,7 +6,8 @@ process.title = 'hs-bench';
 
 const miner = require('../');
 
-const RANGE = 26843136;
+// Max threads that can run on GTX 1080Ti
+const THREADS = 26843136;
 const MEGA = 1e6;
 
 function bench(name) {
@@ -23,10 +24,12 @@ function bench(name) {
 
 const hdr = Buffer.alloc(256);
 
-const mining = bench('hs-mine');
-miner.mine(hdr, {
-  backend: miner.BACKEND,
-  target: miner.TARGET,
-  threads: RANGE
-});
-mining(RANGE);
+for (let i=0; i < 10; i++) {
+  const mining = bench('hs-mine');
+  miner.mine(hdr, {
+    backend: miner.BACKEND,
+    target: miner.TARGET,
+    threads: THREADS
+  });
+  mining(RANGE);
+}

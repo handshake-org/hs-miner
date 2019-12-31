@@ -728,9 +728,8 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
     unsigned int grids = 52428;
-    // TODO: blocks = grids / threads;
-    unsigned int blocks = 512;
     unsigned int threads = options->threads;
+    unsigned int blocks = threads / grids;
     uint8_t *out;
     uint8_t *cuda_outdata;
     uint8_t *hash;
