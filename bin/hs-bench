@@ -6,6 +6,7 @@ process.title = 'hs-bench';
 
 const miner = require('../');
 
+const RANGE = 26843136;
 const MEGA = 1e6;
 
 function bench(name) {
@@ -20,18 +21,12 @@ function bench(name) {
   };
 };
 
-const mining = bench('hs-mine');
 const hdr = Buffer.alloc(256);
 
-for (let i=0; i<10; i++) {
-  miner.mine(hdr, {
-    backend: miner.BACKEND,
-    nonce: 0,
-    range: 1000000,
-    target: miner.TARGET,
-    threads: 1,
-    device: 0
-  });
-
-  mining(1000000);
-}
+const mining = bench('hs-mine');
+miner.mine(hdr, {
+  backend: miner.BACKEND,
+  target: miner.TARGET,
+  threads: RANGE
+});
+mining(RANGE);
