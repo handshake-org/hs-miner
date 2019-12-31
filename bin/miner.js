@@ -265,7 +265,7 @@ class Miner {
 
       if (!valid) {
         increment(hdr, this.now());
-        continue
+        continue;
       }
 
       if (root !== this.root) {
@@ -403,7 +403,7 @@ function readHeader(hdr) {
     prevBlock: hdr.toString('hex', 32, 64),
     treeRoot: hdr.toString('hex', 64, 96),
     maskHash: hdr.toString('hex', 96, 128),
-    extraNonce: hdr.toString('hex', 128, 24),
+    extraNonce: hdr.toString('hex', 128, 152),
     reservedRoot: hdr.toString('hex', 152, 184),
     witnessRoot: hdr.toString('hex', 184, 216),
     merkleRoot: hdr.toString('hex', 216, 248),
