@@ -19,7 +19,6 @@ describe('Miner', function() {
     assert(valid);
 
     const hdr = miner.toBlock(header, nonce);
-    const hash = miner.hashHeader(hdr);
 
     assert(miner.verify(hdr, Miner.TARGET));
   });
