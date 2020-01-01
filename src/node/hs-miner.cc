@@ -265,7 +265,8 @@ NAN_METHOD(mine) {
     case HS_EFAILURE: {
       return Nan::ThrowError("Miner failed.");
     }
-    case HS_EBADARGS: {
+    case HS_EBADARGS:
+    case HS_ENEGTARGET: {
       return Nan::ThrowError("Invalid mining arguments.");
     }
     case HS_ENODEVICE: {
@@ -510,7 +511,7 @@ NAN_METHOD(blake2b) {
   const uint8_t *data = (const uint8_t *)node::Buffer::Data(data_buf);
   size_t data_len = node::Buffer::Length(data_buf);
 
-  uint8_t hash[32];
+  uint8_t hash[64];
 
   blake2b(
     (void *)hash,
@@ -521,7 +522,7 @@ NAN_METHOD(blake2b) {
     0
   );
 
-  info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
+  info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 64).ToLocalChecked());
 }
 
 NAN_METHOD(sha3) {
@@ -542,6 +543,31 @@ NAN_METHOD(sha3) {
   hs_sha3_256_init(&s_ctx);
   hs_sha3_update(&s_ctx, data, data_len);
   hs_sha3_final(&s_ctx, hash);
+
+  info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
+}
+
+NAN_METHOD(hash_header) {
+  if (info.Length() != 1)
+    return Nan::ThrowError("hash_header() requires arguments.");
+
+  v8::Local<v8::Object> data_buf = info[0].As<v8::Object>();
+
+  if (!node::Buffer::HasInstance(data_buf))
+    return Nan::ThrowTypeError("`data` must be a buffer.");
+
+  const uint8_t *data = (const uint8_t *)node::Buffer::Data(data_buf);
+  size_t data_len = node::Buffer::Length(data_buf);
+
+  if (data_len != HEADER_SIZE)
+    return Nan::ThrowError("Invalid header size.");
+
+  uint8_t hash[32];
+  hs_header_t header[HEADER_SIZE];
+
+  hs_header_decode(data, data_len, header);
+
+  hs_header_pow(header, hash);
 
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }
@@ -644,6 +670,7 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "verify", verify);
   Nan::Export(target, "blake2b", blake2b);
   Nan::Export(target, "sha3", sha3);
+  Nan::Export(target, "hashHeader", hash_header);
   Nan::Export(target, "getNetwork", get_network);
   Nan::Export(target, "getBackends", get_backends);
   Nan::Export(target, "hasCUDA", has_cuda);

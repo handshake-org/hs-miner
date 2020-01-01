@@ -12,6 +12,7 @@ NAN_METHOD(stop_all);
 NAN_METHOD(verify);
 NAN_METHOD(blake2b);
 NAN_METHOD(sha3);
+NAN_METHOD(hash_header);
 NAN_METHOD(get_network);
 NAN_METHOD(get_backends);
 NAN_METHOD(has_cuda);
