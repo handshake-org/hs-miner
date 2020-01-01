@@ -3,6 +3,7 @@
 #include "blake2.h"
 #include "sha3.h"
 #include "header.h"
+#include "error.h"
 
 typedef unsigned char BYTE;
 typedef unsigned int  WORD;
