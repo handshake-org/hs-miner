@@ -89,7 +89,7 @@ hs_random(void) {
 
 uint64_t
 hs_nonce(void) {
-  return (((uint64_t)hs_random()) << 32) + hs_random();
+  return (uint64_t)hs_random();
 }
 
 static inline int
@@ -222,3 +222,4 @@ hs_to_lower(char *name) {
     s += 1;
   }
 }
+
