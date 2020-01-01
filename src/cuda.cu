@@ -738,7 +738,7 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
 
-    if (cuda_memcmp(hash, target, 32)) {
+    if (cuda_memcmp(hash, target, 32) <= 0) {
         *out_nonce = thread;
         *out_match = true;
         return;
@@ -756,8 +756,8 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     cudaMemcpyToSymbol(target, options->target, 32);
 
     kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
-    cudaMemcpy(&result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
+    cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
         printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
