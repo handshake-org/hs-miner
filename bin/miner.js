@@ -244,17 +244,21 @@ class Miner {
   async _work() {
     let nonce;
     let valid;
+    let i = 0;
 
     for (;;) {
       if (!this.mining)
         break;
 
+      i++; // TODO: handle overflow
       const [hdr, target, height, root] = this.getJob();
 
       increment(hdr, this.now());
 
-      this.log('Mining height %d (target=%s).',
-        height, target.toString('hex'));
+      if (i % 1e2 === 0) {
+        this.log('Mining height %d (target=%s).',
+          height, target.toString('hex'));
+      }
 
       try {
         [nonce, valid] = await this.mine(hdr, target);
