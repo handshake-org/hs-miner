@@ -348,6 +348,14 @@ class Miner {
 
     return json.result;
   }
+
+  hashHeader(header) {
+    return miner.hashHeader(header);
+  }
+
+  verify(header, target) {
+    return miner.verify(header, target);
+  }
 }
 
 /*
