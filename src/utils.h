@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 int64_t
 hs_now(void);
 
@@ -51,4 +55,9 @@ hs_hex_decode(const char *str, uint8_t *data);
 
 void
 hs_to_lower(char *name);
+
+#if defined(__cplusplus)
+}
+#endif
+
 #endif

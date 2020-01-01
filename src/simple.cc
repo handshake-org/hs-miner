@@ -4,6 +4,7 @@
 #include "common.h"
 #include "header.h"
 #include "error.h"
+#include "utils.h"
 
 int32_t
 hs_simple_run(
@@ -32,6 +33,12 @@ hs_simple_run(
 
   uint8_t target[32];
   memcpy(target, options->target, 32);
+
+  uint64_t extra_nonce = hs_nonce();
+
+  // Randomize the extra nonce for
+  // each set of CPU jobs.
+  memset(header->extra_nonce, extra_nonce, sizeof(extra_nonce));
 
   for (uint32_t r = 0; r < range; r++) {
     if (!options->running)

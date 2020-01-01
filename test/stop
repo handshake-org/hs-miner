@@ -19,7 +19,7 @@ const job = miner.mineAsync(hdr, {
   device: 0
 });
 
-job.then(([sol, nonce, match]) => {
+job.then(([nonce, match]) => {
   console.log('Stopped with result: %d %s', nonce, match);
 }).catch((err) => {
   console.error(err.stack);
