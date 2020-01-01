@@ -25,6 +25,8 @@ config.open('miner.conf');
 
 let backend;
 let range;
+let grids;
+let blocks;
 let threads;
 let device;
 let ssl;
@@ -38,6 +40,8 @@ let help;
 try {
   backend = config.str(['backend', 'b'], lib.BACKEND);
   range = config.uint(['range', 'r'], 10000);
+  grids = config.uint(['grids', 'm'], 52428);
+  blocks = config.uint(['blocks', 'n'], 512);
   threads = config.uint(['threads', 'x'], 26843136);
   device = config.uint(['device', 'd'], -1);
   ssl = config.str(['rpc-ssl', 'l'], false);
@@ -69,6 +73,7 @@ if (help) {
   console.error('            --rpc-host [host] --rpc-port [port]');
   console.error('            --rpc-user [user] --rpc-pass [pass]');
   console.error('            --backend [backend] --range [range]');
+  console.error('            --grids [grids], --blocks [blocks]');
   console.error('            --threads [threads]');
   console.error('            --device [device] --help');
   process.exit(1);
@@ -78,6 +83,8 @@ if (help) {
 const miner = new Miner({
   backend,
   range,
+  grids,
+  blocks,
   threads,
   device,
   ssl,

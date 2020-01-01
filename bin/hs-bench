@@ -29,6 +29,8 @@ for (let i=0; i < 10; i++) {
   miner.mine(hdr, {
     backend: miner.BACKEND,
     target: miner.TARGET,
+    grids: 52428,
+    blocks: 512,
     threads: THREADS
   });
   mining(THREADS);

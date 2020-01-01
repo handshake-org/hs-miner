@@ -6,7 +6,9 @@ const Miner = require('../bin/miner');
 const miner = new Miner({
   backend: Miner.BACKEND,
   target: Miner.TARGET,
-  threads: 16
+  grids: 1,
+  blocks: 1,
+  threads: 1
 });
 
 describe('Miner', function() {
