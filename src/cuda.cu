@@ -603,6 +603,18 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 __constant__ uint8_t header[256];
 __constant__ uint8_t target[32];
 
+__device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
+	const unsigned char *us1 = (const unsigned char *) s1;
+	const unsigned char *us2 = (const unsigned char *) s2;
+	while (n-- != 0) {
+		if (*us1 != *us2) {
+			return (*us1 < *us2) ? -1 : +1;
+		}
+		us1++;
+		us2++;
+	}
+	return 0;
+}
 __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
 {
     WORD thread = blockIdx.x * blockDim.x + threadIdx.x;
@@ -726,10 +738,7 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
 
-    for (int i=0; i < 32; i++) {
-        if (hash[i] > target[i]) {
-            break;
-        }
+    if (cuda_memcmp(hash, target, 32)) {
         *out_nonce = thread;
         *out_match = true;
         return;
