@@ -187,7 +187,7 @@ get_miner_func(const char *backend, bool *is_cuda) {
 }
 
 NAN_METHOD(mine) {
-  if (info.Length() < 7)
+  if (info.Length() < 9)
     return Nan::ThrowError("mine() requires arguments.");
 
   if (!info[0]->IsString())
@@ -210,9 +210,15 @@ NAN_METHOD(mine) {
     return Nan::ThrowTypeError("`target` must be a buffer.");
 
   if (!info[5]->IsNumber())
-    return Nan::ThrowTypeError("`threads` must be a number.");
+    return Nan::ThrowTypeError("`grids` must be a number.");
 
   if (!info[6]->IsNumber())
+    return Nan::ThrowTypeError("`blocks` must be a number.");
+
+  if (!info[7]->IsNumber())
+    return Nan::ThrowTypeError("`threads` must be a number.");
+
+  if (!info[8]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
@@ -236,8 +242,10 @@ NAN_METHOD(mine) {
 
   uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
   uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
-  uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
-  uint32_t device = Nan::To<uint32_t>(info[7]).FromJust();
+  uint32_t grids = Nan::To<uint32_t>(info[5]).FromJust();
+  uint32_t blocks = Nan::To<uint32_t>(info[6]).FromJust();
+  uint32_t threads = Nan::To<uint32_t>(info[7]).FromJust();
+  uint32_t device = Nan::To<uint32_t>(info[8]).FromJust();
 
   hs_options_t options;
   options.header_len = hdr_len;
@@ -245,6 +253,8 @@ NAN_METHOD(mine) {
   options.nonce = nonce;
   options.range = range;
   memcpy(&options.target[0], target, 32);
+  options.grids = grids;
+  options.blocks = blocks;
   options.threads = threads;
   options.device = device;
   options.log = false;
@@ -310,7 +320,7 @@ NAN_METHOD(mine) {
 }
 
 NAN_METHOD(mine_async) {
-  if (info.Length() < 8)
+  if (info.Length() < 10)
     return Nan::ThrowError("mine_async() requires arguments.");
 
   if (!info[0]->IsString())
@@ -333,12 +343,18 @@ NAN_METHOD(mine_async) {
     return Nan::ThrowTypeError("`target` must be a buffer.");
 
   if (!info[5]->IsNumber())
-    return Nan::ThrowTypeError("`threads` must be a number.");
+    return Nan::ThrowTypeError("`grids` must be a number.");
 
   if (!info[6]->IsNumber())
+    return Nan::ThrowTypeError("`blocks` must be a number.");
+
+  if (!info[7]->IsNumber())
+    return Nan::ThrowTypeError("`threads` must be a number.");
+
+  if (!info[8]->IsNumber())
     return Nan::ThrowTypeError("`device` must be a number.");
 
-  if (!info[7]->IsFunction())
+  if (!info[9]->IsFunction())
     return Nan::ThrowTypeError("`callback` must be a function.");
 
   const uint8_t *hdr = (const uint8_t *)node::Buffer::Data(hdr_buf);
@@ -363,10 +379,12 @@ NAN_METHOD(mine_async) {
 
   uint32_t nonce = Nan::To<uint32_t>(info[2]).FromJust();
   uint32_t range = Nan::To<uint32_t>(info[3]).FromJust();
-  uint32_t threads = Nan::To<uint32_t>(info[5]).FromJust();
-  uint32_t device = Nan::To<uint32_t>(info[6]).FromJust();
+  uint32_t grids = Nan::To<uint32_t>(info[5]).FromJust();
+  uint32_t blocks = Nan::To<uint32_t>(info[6]).FromJust();
+  uint32_t threads = Nan::To<uint32_t>(info[7]).FromJust();
+  uint32_t device = Nan::To<uint32_t>(info[8]).FromJust();
 
-  v8::Local<v8::Function> callback = info[7].As<v8::Function>();
+  v8::Local<v8::Function> callback = info[9].As<v8::Function>();
 
   hs_options_t *options = (hs_options_t *)malloc(sizeof(hs_options_t));
 
@@ -378,6 +396,8 @@ NAN_METHOD(mine_async) {
   options->nonce = nonce;
   options->range = range;
   memcpy(&options->target[0], target, 32);
+  options->grids = grids;
+  options->blocks = blocks;
   options->threads = threads;
   options->device = device;
   options->log = false;

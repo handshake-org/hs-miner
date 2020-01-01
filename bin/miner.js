@@ -8,6 +8,8 @@ class Miner {
   constructor(options) {
     this.backend = options.backend || miner.BACKEND;
     this.range = options.range || 0;
+    this.grids = options.grids || 0;
+    this.blocks = options.blocks || 0;
     this.threads = options.threads || 0;
     this.device = options.device == null ? -1 : options.device;
     this.ssl = options.ssl || false;
@@ -201,6 +203,8 @@ class Miner {
       nonce: index * this.range,
       range: this.range,
       target,
+      grids: this.grids,
+      blocks: this.blocks,
       threads: this.threads,
       device: index
     });

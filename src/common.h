@@ -30,6 +30,8 @@ typedef struct hs_options_s {
   uint32_t nonce;
   uint32_t range;
   uint8_t target[32];
+  uint32_t grids;
+  uint32_t blocks;
   uint32_t threads;
   uint32_t device;
   bool log;

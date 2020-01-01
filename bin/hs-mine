@@ -21,6 +21,8 @@ let target;
 let backend;
 let nonce;
 let range;
+let grids;
+let blocks;
 let threads;
 let device;
 let mantissa;
@@ -35,6 +37,8 @@ try {
   backend = config.str(['backend', 'b', 2], miner.BACKEND);
   nonce = config.uint(['nonce', 'n'], 0);
   range = config.uint(['range', 'r'], 0xffffffff);
+  grids = config.uint(['grids', 'm'], 52428);
+  blocks = config.uint(['blocks', 'n'], 512);
   threads = config.uint(['threads', 'x'], 26843136);
   device = config.uint(['device', 'd'], 0);
   quiet = config.bool(['quiet', 'q'], false);
@@ -77,6 +81,8 @@ if (!hdr || help) {
   console.error('Usage: $ hs-mine [header]    [target]   [backend]');
   console.error('                  --target [hex]  --backend [name]');
   console.error('                  --nonce [num]   --range [num]');
+  console.error('                  --grids [grids], --blocks [blocks]');
+  console.error('                  --threads [threads]');
   console.error('                  --bits [num]    --quiet');
   console.error('                  --info          --help');
   process.exit(1);
@@ -115,6 +121,8 @@ if (!quiet || info) {
     nonce,
     range,
     target,
+    grids,
+    blocks,
     threads,
     device
   });

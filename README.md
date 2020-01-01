@@ -48,6 +48,8 @@ const [nonce, match] = await miner.mineAsync(hdr, {
   nonce: 0,
   range: 0xffffffff,
   target: Buffer.alloc(32, 0xff),
+  grids: 10,
+  blocks: 10,
   threads: 100,
   device: 0
 });
@@ -109,6 +111,8 @@ console.log('Match: %s', match);
   unchanged.
 - `range` - How many iterations before the miner stops looking.
 - `target` - Big-endian target (32 bytes).
+- `grids` - Backend-specific, see below.
+- `blocks` - Backend-specific, see below.
 - `threads` - Backend-specific, see below.
 
 ## Backends (so far)
@@ -135,7 +139,7 @@ When using one of the CUDA backends, only one job per device is allowed at a
 time. This is done because the CUDA miners generally wipe out your GPU's memory
 anyway.
 
-The `threads` parameter is backend-specific. You may have to dig into it to
+The `grids`, `blocks` and `threads` parameters are backend-specific. You may have to dig into each to
 figure out what reasonable values are and how they work.
 
 For CUDA support, CUDA must be installed in either `/opt/cuda` or

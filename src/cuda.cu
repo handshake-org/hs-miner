@@ -728,20 +728,17 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
-    unsigned int grids = 52428;
-    unsigned int threads = options->threads;
-    unsigned int blocks = threads / grids;
     uint8_t *out;
     uint8_t *cuda_outdata;
     uint8_t *hash;
 
-    out = (uint8_t*)malloc(sizeof(uint8_t) * 32 * threads);
+    out = (uint8_t*)malloc(sizeof(uint8_t) * 32 * options->threads);
     hash = (uint8_t*)malloc(sizeof(uint8_t) *  32);
-    cudaMalloc(&cuda_outdata, sizeof(uint8_t) * 32 * threads);
+    cudaMalloc(&cuda_outdata, sizeof(uint8_t) * 32 * options->threads);
     cudaMemcpyToSymbol(header, options->header, 256);
 
-    kernel_hs_hash<<< grids, blocks >>>(cuda_outdata, threads);
-    cudaMemcpy(out, cuda_outdata, 32 * threads, cudaMemcpyDeviceToHost);
+    kernel_hs_hash<<< options->grids, options->blocks >>>(cuda_outdata, options->threads);
+    cudaMemcpy(out, cuda_outdata, 32 * options->threads, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
@@ -751,7 +748,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     }
     cudaFree(cuda_outdata);
 
-    for (int i=0; i < threads; i++) {
+    for (int i=0; i < options->threads; i++) {
         memcpy(hash, out + 32 * i, 32);
 
         if (memcmp(hash, options->target, 32) <= 0) {
