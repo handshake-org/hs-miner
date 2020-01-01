@@ -602,10 +602,10 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
  */
 __constant__ uint8_t header[256];
 
-__global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
+__global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
 {
     WORD thread = blockIdx.x * blockDim.x + threadIdx.x;
-    if (thread >= n_batch)
+    if (thread >= threads)
     {
         return;
     }
@@ -728,20 +728,20 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int n_batch)
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
-    unsigned int n_batch = options->range;
-    unsigned int thread = 256;
-    unsigned int block = (n_batch + thread - 1) / thread;
+    unsigned int grids = 52428;
+    unsigned int threads = options->threads;
+    unsigned int blocks = threads / grids;
     uint8_t *out;
     uint8_t *cuda_outdata;
     uint8_t *hash;
 
-    out = (uint8_t*)malloc(sizeof(uint8_t) * 32 * n_batch);
+    out = (uint8_t*)malloc(sizeof(uint8_t) * 32 * threads);
     hash = (uint8_t*)malloc(sizeof(uint8_t) *  32);
-    cudaMalloc(&cuda_outdata, sizeof(uint8_t) * 32 * n_batch);
+    cudaMalloc(&cuda_outdata, sizeof(uint8_t) * 32 * threads);
     cudaMemcpyToSymbol(header, options->header, 256);
 
-    kernel_hs_hash<<< block, thread >>>(cuda_outdata, n_batch);
-    cudaMemcpy(out, cuda_outdata, 32 * n_batch, cudaMemcpyDeviceToHost);
+    kernel_hs_hash<<< grids, blocks >>>(cuda_outdata, threads);
+    cudaMemcpy(out, cuda_outdata, 32 * threads, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
@@ -751,7 +751,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     }
     cudaFree(cuda_outdata);
 
-    for (int i=0; i < n_batch; i++) {
+    for (int i=0; i < threads; i++) {
         memcpy(hash, out + 32 * i, 32);
 
         if (memcmp(hash, options->target, 32) <= 0) {

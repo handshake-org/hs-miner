@@ -38,7 +38,7 @@ let help;
 try {
   backend = config.str(['backend', 'b'], lib.BACKEND);
   range = config.uint(['range', 'r'], 10000);
-  threads = config.uint(['threads', 'x'], 0);
+  threads = config.uint(['threads', 'x'], 26843136);
   device = config.uint(['device', 'd'], -1);
   ssl = config.str(['rpc-ssl', 'l'], false);
   host = config.str(['rpc-host', 'i'], 'localhost');

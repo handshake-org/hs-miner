@@ -35,7 +35,7 @@ try {
   backend = config.str(['backend', 'b', 2], miner.BACKEND);
   nonce = config.uint(['nonce', 'n'], 0);
   range = config.uint(['range', 'r'], 0xffffffff);
-  threads = config.uint(['threads', 'x'], 0);
+  threads = config.uint(['threads', 'x'], 26843136);
   device = config.uint(['device', 'd'], 0);
   quiet = config.bool(['quiet', 'q'], false);
   info = config.bool(['info', 'i'], false);
