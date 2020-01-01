@@ -14,10 +14,8 @@
 extern "C" {
 #endif
 
-#define MIN_HEADER_SIZE 4
-
-#ifndef MAX_HEADER_SIZE
-#define MAX_HEADER_SIZE 512
+#ifndef HEADER_SIZE
+#define HEADER_SIZE 256
 #endif
 
 #ifndef HS_NETWORK
@@ -26,17 +24,6 @@ extern "C" {
 
 #define HS_QUOTE(name) #name
 #define HS_STR(macro) HS_QUOTE(macro)
-
-#define HS_SUCCESS 0
-#define HS_ENOMEM 1
-#define HS_EFAILURE 2
-#define HS_EBADARGS 3
-#define HS_ENODEVICE 4
-#define HS_EBADPROPS 5
-#define HS_ENOSUPPORT 6
-#define HS_EMAXLOAD 7
-#define HS_EBADPATH 8
-#define HS_ENOSOLUTION 9
 
 typedef struct hs_options_s {
   size_t header_len;
@@ -48,7 +35,7 @@ typedef struct hs_options_s {
   bool log;
   bool is_cuda;
   bool running;
-  uint8_t header[MAX_HEADER_SIZE];
+  uint8_t header[HEADER_SIZE];
 } hs_options_t;
 
 typedef int32_t (*hs_miner_func)(

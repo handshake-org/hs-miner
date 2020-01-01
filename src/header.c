@@ -19,8 +19,13 @@ hs_header_init(hs_header_t *hdr) {
   // Preheader.
   hdr->nonce = 0;
   hdr->time = 0;
+  memset(hdr->padding, 0, 20);
   memset(hdr->prev_block, 0, 32);
   memset(hdr->name_root, 0, 32);
+
+  // Mask Hash
+  // H(prev_block, mask)
+  memset(hdr->mask_hash, 0, 32);
 
   // Subheader.
   memset(hdr->extra_nonce, 0, 24);
@@ -29,16 +34,6 @@ hs_header_init(hs_header_t *hdr) {
   memset(hdr->merkle_root, 0, 32);
   hdr->version = 0;
   hdr->bits = 0;
-
-  // Mask.
-  memset(hdr->mask, 0, 32);
-
-  hdr->cache = false;
-  memset(hdr->hash, 0, 32);
-  hdr->height = 0;
-  memset(hdr->work, 0, 32);
-
-  hdr->next = NULL;
 }
 
 hs_header_t *
@@ -56,10 +51,16 @@ hs_header_read(uint8_t **data, size_t *data_len, hs_header_t *hdr) {
   if (!read_u64(data, data_len, &hdr->time))
     return false;
 
+  if (!read_bytes(data, data_len, hdr->padding, 20))
+    return false;
+
   if (!read_bytes(data, data_len, hdr->prev_block, 32))
     return false;
 
   if (!read_bytes(data, data_len, hdr->name_root, 32))
+    return false;
+
+  if (!read_bytes(data, data_len, hdr->mask_hash, 32))
     return false;
 
   if (!read_bytes(data, data_len, hdr->extra_nonce, 24))
@@ -80,9 +81,6 @@ hs_header_read(uint8_t **data, size_t *data_len, hs_header_t *hdr) {
   if (!read_u32(data, data_len, &hdr->bits))
     return false;
 
-  if (!read_bytes(data, data_len, hdr->mask, 32))
-    return false;
-
   return true;
 }
 
@@ -96,15 +94,16 @@ hs_header_write(const hs_header_t *hdr, uint8_t **data) {
   int s = 0;
   s += write_u32(data, hdr->nonce);
   s += write_u64(data, hdr->time);
+  s += write_bytes(data, hdr->padding, 20);
   s += write_bytes(data, hdr->prev_block, 32);
   s += write_bytes(data, hdr->name_root, 32);
+  s += write_bytes(data, hdr->mask_hash, 32);
   s += write_bytes(data, hdr->extra_nonce, 24);
   s += write_bytes(data, hdr->reserved_root, 32);
   s += write_bytes(data, hdr->witness_root, 32);
   s += write_bytes(data, hdr->merkle_root, 32);
   s += write_u32(data, hdr->version);
   s += write_u32(data, hdr->bits);
-  s += write_bytes(data, hdr->mask, 32);
   return s;
 }
 
@@ -122,17 +121,15 @@ int
 hs_header_pre_write(const hs_header_t *hdr, uint8_t **data) {
   int s = 0;
   uint8_t pad[20];
-  uint8_t commit_hash[32];
 
   hs_header_padding(hdr, pad, 20);
-  hs_header_commit_hash(hdr, commit_hash);
 
   s += write_u32(data, hdr->nonce);
   s += write_u64(data, hdr->time);
   s += write_bytes(data, pad, 20);
   s += write_bytes(data, hdr->prev_block, 32);
   s += write_bytes(data, hdr->name_root, 32);
-  s += write_bytes(data, commit_hash, 32);
+  s += write_bytes(data, hdr->mask_hash, 32);
   return s;
 }
 
@@ -181,30 +178,6 @@ hs_header_sub_hash(const hs_header_t *hdr, uint8_t *hash) {
 }
 
 void
-hs_header_mask_hash(const hs_header_t *hdr, uint8_t *hash) {
-  blake2b_state ctx;
-  assert(blake2b_init(&ctx, 32) == 0);
-  blake2b_update(&ctx, hdr->prev_block, 32);
-  blake2b_update(&ctx, hdr->mask, 32);
-  assert(blake2b_final(&ctx, hash, 32) == 0);
-}
-
-void
-hs_header_commit_hash(const hs_header_t *hdr, uint8_t *hash) {
-  uint8_t sub_hash[32];
-  uint8_t mask_hash[32];
-
-  hs_header_sub_hash(hdr, sub_hash);
-  hs_header_mask_hash(hdr, mask_hash);
-
-  blake2b_state ctx;
-  assert(blake2b_init(&ctx, 32) == 0);
-  blake2b_update(&ctx, sub_hash, 32);
-  blake2b_update(&ctx, mask_hash, 32);
-  assert(blake2b_final(&ctx, hash, 32) == 0);
-}
-
-void
 hs_header_padding(const hs_header_t *hdr, uint8_t *pad, size_t size) {
   assert(hdr && pad);
 
@@ -214,16 +187,8 @@ hs_header_padding(const hs_header_t *hdr, uint8_t *pad, size_t size) {
     pad[i] = hdr->prev_block[i % 32] ^ hdr->name_root[i % 32];
 }
 
-bool
-hs_header_equal(hs_header_t *a, hs_header_t *b) {
-  return memcmp(hs_header_cache(a), hs_header_cache(b), 32) == 0;
-}
-
-const uint8_t *
-hs_header_cache(hs_header_t *hdr) {
-  if (hdr->cache)
-    return hdr->hash;
-
+void
+hs_header_pow(hs_header_t *hdr, uint8_t *hash) {
   int size = hs_header_pre_size(hdr);
   uint8_t pre[size];
   uint8_t pad8[8];
@@ -255,35 +220,14 @@ hs_header_cache(hs_header_t *hdr) {
   blake2b_update(&b_ctx, left, 64);
   blake2b_update(&b_ctx, pad32, 32);
   blake2b_update(&b_ctx, right, 32);
-  assert(blake2b_final(&b_ctx, hdr->hash, 32) == 0);
-
-  // XOR PoW hash with arbitrary bytes.
-  // This can be used by mining pools to
-  // mitigate block witholding attacks.
-  int i;
-  for (i = 0; i < 32; i++)
-    hdr->hash[i] ^= hdr->mask[i];
-
-  hdr->cache = true;
-
-  return hdr->hash;
-}
-
-void
-hs_header_hash(hs_header_t *hdr, uint8_t *hash) {
-  memcpy(hash, hs_header_cache(hdr), 32);
+  assert(blake2b_final(&b_ctx, hash, 32) == 0);
 }
 
 int
-hs_header_verify_pow(const hs_header_t *hdr) {
-  uint8_t target[32];
-
-  if (!hs_pow_to_target(hdr->bits, target))
-    return HS_ENEGTARGET;
-
+hs_header_verify_pow(const hs_header_t *hdr, uint8_t *target) {
   uint8_t hash[32];
 
-  hs_header_hash((hs_header_t *)hdr, hash);
+  hs_header_pow((hs_header_t *)hdr, hash);
 
   if (memcmp(hash, target, 32) > 0)
     return HS_EHIGHHASH;
@@ -295,32 +239,28 @@ void
 hs_header_print(hs_header_t *hdr, const char *prefix) {
   assert(hdr);
 
-  char hash[65];
-  char work[65];
+  char padding[41];
   char prev_block[65];
   char name_root[65];
+  char mask_hash[65];
   char extra_nonce[49];
   char reserved_root[65];
   char witness_root[65];
   char merkle_root[65];
-  char mask[65];
 
-  assert(hs_hex_encode(hs_header_cache(hdr), 32, hash));
-  assert(hs_hex_encode(hdr->work, 32, work));
+  assert(hs_hex_encode(hdr->padding, 20, padding));
   assert(hs_hex_encode(hdr->prev_block, 32, prev_block));
   assert(hs_hex_encode(hdr->name_root, 32, name_root));
+  assert(hs_hex_encode(hdr->mask_hash, 32, mask_hash));
   assert(hs_hex_encode(hdr->extra_nonce, 24, extra_nonce));
   assert(hs_hex_encode(hdr->reserved_root, 32, reserved_root));
   assert(hs_hex_encode(hdr->witness_root, 32, witness_root));
   assert(hs_hex_encode(hdr->merkle_root, 32, merkle_root));
-  assert(hs_hex_encode(hdr->mask, 32, mask));
 
   printf("%sheader\n", prefix);
-  printf("%s  hash=%s\n", prefix, hash);
-  printf("%s  height=%u\n", prefix, hdr->height);
-  printf("%s  work=%s\n", prefix, work);
-  printf("%s  nonce=%u\n", prefix, hdr->nonce);
+  printf("%s  nonce=%u\n", prefix, (uint32_t)hdr->nonce);
   printf("%s  time=%u\n", prefix, (uint32_t)hdr->time);
+  printf("%s  mask_hash=%s\n", prefix, mask_hash);
   printf("%s  prev_block=%s\n", prefix, prev_block);
   printf("%s  name_root=%s\n", prefix, name_root);
   printf("%s  extra_nonce=%s\n", prefix, extra_nonce);
@@ -329,5 +269,4 @@ hs_header_print(hs_header_t *hdr, const char *prefix) {
   printf("%s  merkle_root=%s\n", prefix, merkle_root);
   printf("%s  version=%u\n", prefix, hdr->version);
   printf("%s  bits=%u\n", prefix, hdr->bits);
-  printf("%s  mask=%s\n", prefix, mask);
 }

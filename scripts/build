@@ -30,7 +30,6 @@ CXX=$(test -z "$CXX" && echo 'g++' || echo "$CXX")
 ENDIAN=$(./scripts/get endian)
 CUDA_HAS=$(./scripts/get cuda_has)
 NVCC=$(./scripts/get nvcc)
-BITS=$(./scripts/get bits)
 NETWORK=$(./scripts/get network)
 DENDIAN=$(test "$ENDIAN" = "little" \
   && echo -DHS_LITTLE_ENDIAN \

@@ -10,21 +10,13 @@
 #define HS_EBADARGS 4
 #define HS_EENCODING 5
 
-// Proofs
-#define HS_EPROOFOK 0
-#define HS_EHASHMISMATCH 6
-#define HS_ESAMEKEY 7
-#define HS_ESAMEPATH 8
-#define HS_ENEGDEPTH 9
-#define HS_EPATHMISMATCH 10
-#define HS_ETOODEEP 11
-#define HS_EUNKNOWNERROR 12
-#define HS_EMALFORMEDNODE 13
-#define HS_EINVALIDNODE 14
-#define HS_EEARLYEND 15
-#define HS_ENORESULT 16
-#define HS_EUNEXPECTEDNODE 17
-#define HS_ERECORDMISMATCH 18
+// Device
+#define HS_ENODEVICE 6
+#define HS_EBADPROPS 7
+#define HS_ENOSUPPORT 8
+#define HS_EMAXLOAD 9
+#define HS_EBADPATH 10
+#define HS_ENOSOLUTION 11
 
 // POW
 #define HS_ENEGTARGET 19
@@ -37,13 +29,6 @@
 #define HS_ETIMETOOOLD 24
 #define HS_EBADDIFFBITS 25
 #define HS_EORPHAN 26
-
-// Brontide
-#define HS_EACTONE 27
-#define HS_EACTTWO 28
-#define HS_EACTTHREE 29
-#define HS_EBADSIZE 30
-#define HS_EBADTAG 31
 
 // Max
 #define HS_MAXERROR 32

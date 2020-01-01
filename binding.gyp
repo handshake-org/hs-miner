@@ -13,7 +13,8 @@
       "./src/sha3.c",
       "./src/header.c",
       "./src/verify.cc",
-      "./src/simple.cc"
+      "./src/simple.cc",
+      "./src/utils.c"
     ],
     "cflags": [
       "-Wall",
