@@ -496,7 +496,11 @@ NAN_METHOD(verify) {
     (uint8_t *)target
   );
 
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>((uint32_t)rc));
+  bool ret = false;
+  if (rc == HS_SUCCESS)
+    ret = true;
+
+  info.GetReturnValue().Set(Nan::New<v8::Boolean>(ret));
 }
 
 NAN_METHOD(blake2b) {
