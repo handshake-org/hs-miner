@@ -601,8 +601,21 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
  *
  */
 __constant__ uint8_t header[256];
+__constant__ uint8_t target[32];
 
-__global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
+__device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
+	const unsigned char *us1 = (const unsigned char *) s1;
+	const unsigned char *us2 = (const unsigned char *) s2;
+	while (n-- != 0) {
+		if (*us1 != *us2) {
+			return (*us1 < *us2) ? -1 : +1;
+		}
+		us1++;
+		us2++;
+	}
+	return 0;
+}
+__global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
 {
     WORD thread = blockIdx.x * blockDim.x + threadIdx.x;
     if (thread >= threads)
@@ -613,7 +626,7 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
     CUDA_BLAKE2B_CTX b_ctx;
     CUDA_KECCAK_CTX s_ctx;
 
-    uint8_t *hash = out + thread * 32;
+    uint8_t hash[32];
 
     uint32_t nonce;
     memcpy(&nonce, header, 4);
@@ -724,44 +737,38 @@ __global__ void kernel_hs_hash(uint8_t *out, unsigned int threads)
     cuda_blake2b_update(&b_ctx, pad32, 32);
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
+
+    if (cuda_memcmp(hash, target, 32) <= 0) {
+        *out_nonce = thread;
+        *out_match = true;
+        return;
+    }
 }
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
-    uint8_t *out;
-    uint8_t *cuda_outdata;
-    uint8_t *hash;
+    uint32_t *out_nonce;
+    bool *out_match;
 
-    out = (uint8_t*)malloc(sizeof(uint8_t) * 32 * options->threads);
-    hash = (uint8_t*)malloc(sizeof(uint8_t) *  32);
-    cudaMalloc(&cuda_outdata, sizeof(uint8_t) * 32 * options->threads);
+    cudaMalloc(&out_nonce, sizeof(uint32_t));
+    cudaMalloc(&out_match, sizeof(bool));
     cudaMemcpyToSymbol(header, options->header, 256);
+    cudaMemcpyToSymbol(target, options->target, 32);
 
-    kernel_hs_hash<<< options->grids, options->blocks >>>(cuda_outdata, options->threads);
-    cudaMemcpy(out, cuda_outdata, 32 * options->threads, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
+    cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
         printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
         // TOOD: cudaFree?
         return HS_ENOSOLUTION;
     }
-    cudaFree(cuda_outdata);
+    cudaFree(out_nonce);
+    cudaFree(out_match);
 
-    for (int i=0; i < options->threads; i++) {
-        memcpy(hash, out + 32 * i, 32);
+    if (match)
+        return HS_SUCCESS;
 
-        if (memcmp(hash, options->target, 32) <= 0) {
-            free(out);
-            free(hash);
-
-            *result = i;
-            *match = true;
-            return HS_SUCCESS;
-        }
-    }
-
-    free(out);
-    free(hash);
     return HS_ENOSOLUTION;
 }
