@@ -20,7 +20,7 @@ class Miner {
     this.count = 1;
     this.sequence = 0;
     this.hdr = Buffer.alloc(miner.HDR_SIZE, 0x00);
-    this.target = Buffer.alloc(32, 0xff);
+    this.target = options.target;
     this.height = 0;
     this.mining = false;
     this.offset = 0;
@@ -135,7 +135,6 @@ class Miner {
       process.exit(1);
     }
 
-    debugger
     if (res.data.length !== miner.HDR_SIZE * 2)
       throw new Error('Bad header size.');
 
