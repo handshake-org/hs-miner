@@ -1,5 +1,5 @@
-#ifndef _HSK_BIO_H
-#define _HSK_BIO_H
+#ifndef _HS_BIO_H
+#define _HS_BIO_H
 
 #include <assert.h>
 #include <stdint.h>
@@ -21,7 +21,7 @@ static inline bool
 read_u16(uint8_t **data, size_t *len, uint16_t *out) {
   if (*len < 2)
     return false;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(out, *data, 2);
 #else
   *out = 0;
@@ -37,7 +37,7 @@ static inline bool
 read_u32(uint8_t **data, size_t *len, uint32_t *out) {
   if (*len < 4)
     return false;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(out, *data, 4);
 #else
   *out = 0;
@@ -55,7 +55,7 @@ static inline bool
 read_u64(uint8_t **data, size_t *len, uint64_t *out) {
   if (*len < 8)
     return false;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(out, *data, 8);
 #else
   *out = 0;
@@ -97,7 +97,7 @@ static inline bool
 read_u16be(uint8_t **data, size_t *len, uint16_t *out) {
   if (*len < 2)
     return false;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(out, *data, 2);
 #else
   *out = 0;
@@ -113,7 +113,7 @@ static inline bool
 read_u32be(uint8_t **data, size_t *len, uint32_t *out) {
   if (*len < 4)
     return false;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(out, *data, 4);
 #else
   *out = 0;
@@ -131,7 +131,7 @@ static inline bool
 read_u64be(uint8_t **data, size_t *len, uint64_t *out) {
   if (*len < 8)
     return false;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(out, *data, 8);
 #else
   *out = 0;
@@ -280,7 +280,7 @@ static inline size_t
 write_u16(uint8_t **data, uint16_t out) {
   if (data == NULL || *data == NULL)
     return 2;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(*data, &out, 2);
 #else
   (*data)[0] = (uint8_t)out;
@@ -294,7 +294,7 @@ static inline size_t
 write_u32(uint8_t **data, uint32_t out) {
   if (data == NULL || *data == NULL)
     return 4;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(*data, &out, 4);
 #else
   (*data)[0] = (uint8_t)out;
@@ -310,7 +310,7 @@ static inline size_t
 write_u64(uint8_t **data, uint64_t out) {
   if (data == NULL || *data == NULL)
     return 8;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(*data, &out, 8);
 #else
   (*data)[0] = (uint8_t)out;
@@ -350,7 +350,7 @@ static inline size_t
 write_u16be(uint8_t **data, uint16_t out) {
   if (data == NULL || *data == NULL)
     return 2;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(*data, &out, 2);
 #else
   (*data)[1] = (uint8_t)out;
@@ -364,7 +364,7 @@ static inline size_t
 write_u32be(uint8_t **data, uint32_t out) {
   if (data == NULL || *data == NULL)
     return 4;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(*data, &out, 4);
 #else
   (*data)[3] = (uint8_t)out;
@@ -380,7 +380,7 @@ static inline size_t
 write_u64be(uint8_t **data, uint64_t out) {
   if (data == NULL || *data == NULL)
     return 8;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(*data, &out, 8);
 #else
   (*data)[7] = (uint8_t)out;
@@ -629,7 +629,7 @@ get_u8(const uint8_t *data) {
 static inline uint16_t
 get_u16(const uint8_t *data) {
   uint16_t out;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(&out, data, 2);
 #else
   out = 0;
@@ -642,7 +642,7 @@ get_u16(const uint8_t *data) {
 static inline uint32_t
 get_u32(const uint8_t *data) {
   uint32_t out;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(&out, data, 4);
 #else
   out = 0;
@@ -657,7 +657,7 @@ get_u32(const uint8_t *data) {
 static inline uint64_t
 get_u64(const uint8_t *data) {
   uint64_t out;
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(&out, data, 8);
 #else
   out = 0;
@@ -696,7 +696,7 @@ get_i64(const uint8_t *data) {
 static inline uint16_t
 get_u16be(const uint8_t *data) {
   uint16_t out;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(&out, data, 2);
 #else
   out = 0;
@@ -709,7 +709,7 @@ get_u16be(const uint8_t *data) {
 static inline uint32_t
 get_u32be(const uint8_t *data) {
   uint32_t out;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(&out, data, 4);
 #else
   out = 0;
@@ -724,7 +724,7 @@ get_u32be(const uint8_t *data) {
 static inline uint64_t
 get_u64be(const uint8_t *data) {
   uint64_t out;
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(&out, data, 8);
 #else
   out = 0;
@@ -762,7 +762,7 @@ set_u8(uint8_t *data, uint8_t out) {
 
 static inline void
 set_u16(uint8_t *data, uint16_t out) {
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(data, &out, 2);
 #else
   data[0] = (uint8_t)out;
@@ -772,7 +772,7 @@ set_u16(uint8_t *data, uint16_t out) {
 
 static inline void
 set_u32(uint8_t *data, uint32_t out) {
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(data, &out, 4);
 #else
   data[0] = (uint8_t)out;
@@ -784,7 +784,7 @@ set_u32(uint8_t *data, uint32_t out) {
 
 static inline void
 set_u64(uint8_t *data, uint64_t out) {
-#ifndef HSK_BIG_ENDIAN
+#ifndef HS_BIG_ENDIAN
   memcpy(data, &out, 8);
 #else
   data[0] = (uint8_t)out;
@@ -820,7 +820,7 @@ set_i64(uint8_t *data, int64_t out) {
 
 static inline void
 set_u16be(uint8_t *data, uint16_t out) {
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(data, &out, 2);
 #else
   data[1] = (uint8_t)out;
@@ -830,7 +830,7 @@ set_u16be(uint8_t *data, uint16_t out) {
 
 static inline void
 set_u32be(uint8_t *data, uint32_t out) {
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(data, &out, 4);
 #else
   data[3] = (uint8_t)out;
@@ -842,7 +842,7 @@ set_u32be(uint8_t *data, uint32_t out) {
 
 static inline void
 set_u64be(uint8_t *data, uint64_t out) {
-#ifdef HSK_BIG_ENDIAN
+#ifdef HS_BIG_ENDIAN
   memcpy(data, &out, 8);
 #else
   data[7] = (uint8_t)out;
