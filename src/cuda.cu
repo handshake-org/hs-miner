@@ -669,34 +669,6 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     }
 }
 
-/*
-void hs_commit_hash(const hs_header_t *header)
-{
-    uint8_t sub_hash[32];
-    uint8_t commit_hash[32];
-
-
-    // sub hash
-    hs_blake2b_ctx b_ctx;
-    hs_blake2b_init(&b_ctx, 32);
-
-    uint8_t sub_header[128];
-    hs_header_sub_encode(header, sub_header);
-
-
-    hs_blake2b_update(&b_ctx, sub_header, 128);
-    hs_blake2b_final(&b_ctx, sub_hash, 32);
-
-    // commit hash
-    hs_blake2b_init(&b_ctx, 32);
-    hs_blake2b_update(&b_ctx, sub_hash, 32);
-    hs_blake2b_update(&b_ctx, header->mask_hash, 32);
-    hs_blake2b_final(&b_ctx, commit_hash, 32);
-
-    cudaMemcpyToSymbol(_commit_hash, commit_hash, 32);
-}
-*/
-
 void hs_commit_hash(const uint8_t *sub_header, const uint8_t *mask_hash)
 {
     uint8_t sub_hash[32];
@@ -735,23 +707,6 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 
     cudaMalloc(&out_nonce, sizeof(uint32_t));
     cudaMalloc(&out_match, sizeof(bool));
-
-    /*
-    int i;
-    printf("header:\n");
-    for (i = 0; i < 256; i++) {
-      if (options->header[i] >= 0x00 && options->header[i] < 0x0a)
-        printf("0%x", options->header[i]);
-      else
-        printf("%x", options->header[i]);
-    }
-    printf("\n");
-    */
-
-    /*
-    hs_header_t header[256];
-    hs_header_decode(options->header, 256, header);
-    */
 
     // preheader + mask hash
     // nonce       - 4 bytes
