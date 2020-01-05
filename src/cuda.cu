@@ -585,25 +585,27 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 }
 
 
-/*
- *  nonce - 4
- *  time - 8
- *  padding - 20
- *  prev_block - 32
- *  tree_root - 32
- *  mask - 32
- *  extra_nonce - 24
+/**
+ * The miner serialized header:
+ *  nonce         - 4
+ *  time          - 8
+ *  padding       - 20
+ *  prev_block    - 32
+ *  tree_root     - 32
+ *  mask hash     - 32
+ *  extra_nonce   - 24
  *  reserved_root - 32
- *  witness_root - 32
- *  merkle_root - 32
- *  version - 4
- *  bits - 4
- *
+ *  witness_root  - 32
+ *  merkle_root   - 32
+ *  version       - 4
+ *  bits          - 4
  */
-__constant__ uint8_t header[96];
-__constant__ uint8_t target[32];
-__constant__ uint8_t padding[32];
-__constant__ uint8_t commit[32];
+
+__constant__ uint8_t _pre_header[96];
+__constant__ uint8_t _sub_header[128];
+__constant__ uint8_t _target[32];
+__constant__ uint8_t _padding[32];
+__constant__ uint8_t _commit_hash[32];
 
 __device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
 	const unsigned char *us1 = (const unsigned char *) s1;
@@ -632,85 +634,98 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     uint8_t hash[32];
     uint8_t left[64];
     uint8_t right[32];
-    uint8_t pre[128];
+    uint8_t share[128];
 
-    uint32_t nonce;
-    memcpy(&nonce, header, 4);
+    // Set the nonce based on the thread.
+    uint32_t nonce = thread;
 
-    uint64_t time;
-    memcpy(&time, header + 4, 8);
-
-    nonce += thread;
-
-    // preheader
-    memcpy(pre, &nonce, 4);
-    memcpy(pre + 4, &time, 8);
-    memcpy(pre + 12, padding, 20);
-    memcpy(pre + 32, header + 32, 32);
-    memcpy(pre + 64, header + 64, 32);
-    memcpy(pre + 96, commit, 32);
+    // Create the share
+    memcpy(share, &nonce, 4);
+    memcpy(share + 4, _pre_header + 4, 92);
+    memcpy(share + 96, _commit_hash, 32);
 
     // Generate left.
     cuda_blake2b_init(&b_ctx, NULL, 0, 512);
-    cuda_blake2b_update(&b_ctx, pre, 128);
+    cuda_blake2b_update(&b_ctx, share, 128);
     cuda_blake2b_final(&b_ctx, left);
 
     // Generate right.
     cuda_keccak_init(&s_ctx, 256);
-    cuda_keccak_update(&s_ctx, pre, 128);
-    cuda_keccak_update(&s_ctx, padding, 8);
+    cuda_keccak_update(&s_ctx, share, 128);
+    cuda_keccak_update(&s_ctx, _padding, 8);
     cuda_keccak_final(&s_ctx, right);
 
     // Generate hash.
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
     cuda_blake2b_update(&b_ctx, left, 64);
-    cuda_blake2b_update(&b_ctx, padding, 32);
+    cuda_blake2b_update(&b_ctx, _padding, 32);
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
 
-    if (cuda_memcmp(hash, target, 32) <= 0) {
+    if (cuda_memcmp(hash, _target, 32) <= 0) {
         *out_nonce = thread;
         *out_match = true;
         return;
     }
 }
 
-void hs_commit_hash()
+/*
+void hs_commit_hash(const hs_header_t *header)
+{
+    uint8_t sub_hash[32];
+    uint8_t commit_hash[32];
+
+
+    // sub hash
+    hs_blake2b_ctx b_ctx;
+    hs_blake2b_init(&b_ctx, 32);
+
+    uint8_t sub_header[128];
+    hs_header_sub_encode(header, sub_header);
+
+
+    hs_blake2b_update(&b_ctx, sub_header, 128);
+    hs_blake2b_final(&b_ctx, sub_hash, 32);
+
+    // commit hash
+    hs_blake2b_init(&b_ctx, 32);
+    hs_blake2b_update(&b_ctx, sub_hash, 32);
+    hs_blake2b_update(&b_ctx, header->mask_hash, 32);
+    hs_blake2b_final(&b_ctx, commit_hash, 32);
+
+    cudaMemcpyToSymbol(_commit_hash, commit_hash, 32);
+}
+*/
+
+void hs_commit_hash(const uint8_t *sub_header, const uint8_t *mask_hash)
 {
     uint8_t sub_hash[32];
     uint8_t commit_hash[32];
 
     // sub hash
-    blake2b_state b_ctx;
-    blake2b_init(&b_ctx, 256);
-    blake2b_update(&b_ctx, header, 128);
-    blake2b_final(&b_ctx, sub_hash, 32);
+    hs_blake2b_ctx b_ctx;
+    hs_blake2b_init(&b_ctx, 32);
+    hs_blake2b_update(&b_ctx, sub_header, 128);
+    hs_blake2b_final(&b_ctx, sub_hash, 32);
 
     // commit hash
-    blake2b_init(&b_ctx, 256);
-    blake2b_update(&b_ctx, sub_hash, 32);
-    blake2b_update(&b_ctx, header + 96, 32);
-    blake2b_final(&b_ctx, commit_hash, 32);
+    hs_blake2b_init(&b_ctx, 32);
+    hs_blake2b_update(&b_ctx, sub_hash, 32);
+    hs_blake2b_update(&b_ctx, mask_hash, 32);
+    hs_blake2b_final(&b_ctx, commit_hash, 32);
 
-    cudaMemcpyToSymbol(commit, commit_hash, 32);
+    cudaMemcpyToSymbol(_commit_hash, commit_hash, 32);
 }
 
-void hs_padding()
+void hs_padding(const uint8_t *prev_block, const uint8_t *tree_root, size_t len)
 {
+    uint8_t padding[len];
+
     size_t i;
-    uint8_t prev_block[32];
-    uint8_t tree_root[32];
+    for (i = 0; i < len; i++)
+      padding[i] = prev_block[i % 32] ^ tree_root[i % 32];
 
-    memcpy(prev_block, header + 32, 32);
-    memcpy(tree_root, header + 64, 32);
-    uint8_t pad32[32];
-
-    assert(header && pad32);
-
-    for (i = 0; i < 32; i++)
-      pad32[i] = prev_block[i % 32] ^ tree_root[i % 32];
-
-    cudaMemcpyToSymbol(padding, pad32, 32);
+    cudaMemcpyToSymbol(_padding, padding, 32);
 }
 
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
@@ -720,11 +735,50 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 
     cudaMalloc(&out_nonce, sizeof(uint32_t));
     cudaMalloc(&out_match, sizeof(bool));
-    cudaMemcpyToSymbol(header, options->header, 96);
-    cudaMemcpyToSymbol(target, options->target, 32);
 
-    hs_padding();
-    hs_commit_hash();
+    /*
+    int i;
+    printf("header:\n");
+    for (i = 0; i < 256; i++) {
+      if (options->header[i] >= 0x00 && options->header[i] < 0x0a)
+        printf("0%x", options->header[i]);
+      else
+        printf("%x", options->header[i]);
+    }
+    printf("\n");
+    */
+
+    /*
+    hs_header_t header[256];
+    hs_header_decode(options->header, 256, header);
+    */
+
+    // preheader + mask hash
+    // nonce       - 4 bytes
+    // time        - 8 bytes
+    // pad         - 20 bytes
+    // prev        - 32 bytes
+    // tree root   - 32 bytes
+    // mask hash   - 32 bytes
+    // total       - 128 bytes
+
+    // subheader
+    // extra nonce - 24 bytes
+    // reserved    - 32 bytes
+    // witness     - 32 bytes
+    // merkle      - 32 bytes
+    // version     - 4 bytes
+    // bits        - 4 bytes
+    // total       - 128 bytes
+
+    cudaMemcpyToSymbol(_pre_header, options->header, 96);
+    cudaMemcpyToSymbol(_sub_header, options->header + 128, 128);
+    cudaMemcpyToSymbol(_target, options->target, 32);
+
+    // Pointers to prev block and tree root.
+    hs_padding(options->header + 32, options->header + 64, 32);
+    // Pointers to the subheader and mask hash
+    hs_commit_hash(options->header + 128, options->header + 96);
 
     kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
     cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
