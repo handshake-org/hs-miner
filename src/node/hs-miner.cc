@@ -236,7 +236,6 @@ NAN_METHOD(mine) {
   Nan::Utf8String backend_(info[0]);
   const char *backend = (const char *)*backend_;
 
-
   hs_miner_func mine_func = get_miner_func(backend, NULL);
 
   if (mine_func == NULL)
