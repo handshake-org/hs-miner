@@ -601,6 +601,7 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
  *  bits          - 4
  */
 
+// Global memory is underscore prefixed
 __constant__ uint8_t _pre_header[96];
 __constant__ uint8_t _sub_header[128];
 __constant__ uint8_t _target[32];
@@ -639,29 +640,38 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     // Set the nonce based on the thread.
     uint32_t nonce = thread;
 
-    // Create the share
+    // Create the share using the nonce,
+    // pre_header and commit_hash.
     memcpy(share, &nonce, 4);
     memcpy(share + 4, _pre_header + 4, 92);
     memcpy(share + 96, _commit_hash, 32);
 
-    // Generate left.
+    // Generate left by hashing the share
+    // with blake2b-512.
     cuda_blake2b_init(&b_ctx, NULL, 0, 512);
     cuda_blake2b_update(&b_ctx, share, 128);
     cuda_blake2b_final(&b_ctx, left);
 
-    // Generate right.
+    // Generate right by hashing the share
+    // and first 8 bytes of padding with
+    // sha3-256.
     cuda_keccak_init(&s_ctx, 256);
     cuda_keccak_update(&s_ctx, share, 128);
     cuda_keccak_update(&s_ctx, _padding, 8);
     cuda_keccak_final(&s_ctx, right);
 
-    // Generate hash.
+    // Generate share hash by hashing together
+    // the left, 32 bytes of padding and the
+    // right with blake2b-256.
     cuda_blake2b_init(&b_ctx, NULL, 0, 256);
     cuda_blake2b_update(&b_ctx, left, 64);
     cuda_blake2b_update(&b_ctx, _padding, 32);
     cuda_blake2b_update(&b_ctx, right, 32);
     cuda_blake2b_final(&b_ctx, hash);
 
+    // Do a bytewise comparison to see if the
+    // hash satisfies the target. This could be
+    // either the network target or the pool target.
     if (cuda_memcmp(hash, _target, 32) <= 0) {
         *out_nonce = thread;
         *out_match = true;
@@ -669,18 +679,25 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     }
 }
 
+// Calculate the commit hash on the CPU and copy to the GPU
+// before starting the GPU kernel. This saves the need for each
+// GPU thread to compute the exact same commit_hash.
 void hs_commit_hash(const uint8_t *sub_header, const uint8_t *mask_hash)
 {
     uint8_t sub_hash[32];
     uint8_t commit_hash[32];
 
-    // sub hash
+    // Create the sub_hash by hashing the
+    // sub_header with blake2b-256.
     hs_blake2b_ctx b_ctx;
     hs_blake2b_init(&b_ctx, 32);
     hs_blake2b_update(&b_ctx, sub_header, 128);
     hs_blake2b_final(&b_ctx, sub_hash, 32);
 
-    // commit hash
+    // Create the commit_hash by hashing together
+    // the sub_hash and the mask_hash with blake2b-256.
+    // The mask_hash is included in the miner header serialization
+    // that comes from `getwork` or stratum.
     hs_blake2b_init(&b_ctx, 32);
     hs_blake2b_update(&b_ctx, sub_hash, 32);
     hs_blake2b_update(&b_ctx, mask_hash, 32);
@@ -689,6 +706,8 @@ void hs_commit_hash(const uint8_t *sub_header, const uint8_t *mask_hash)
     cudaMemcpyToSymbol(_commit_hash, commit_hash, 32);
 }
 
+// At most 32 bytes of padding are needed, so calculate all 32
+// bytes and then copy it to the GPU.
 void hs_padding(const uint8_t *prev_block, const uint8_t *tree_root, size_t len)
 {
     uint8_t padding[len];
@@ -700,6 +719,7 @@ void hs_padding(const uint8_t *prev_block, const uint8_t *tree_root, size_t len)
     cudaMemcpyToSymbol(_padding, padding, 32);
 }
 
+// hs_miner_func for the cuda backend
 int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
 {
     uint32_t *out_nonce;
