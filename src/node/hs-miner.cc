@@ -16,7 +16,7 @@
 
 #include "hs-miner.h"
 #include "../header.h"
-#include "../blake2.h"
+#include "../blake2b.h"
 #include "../sha3.h"
 #include "../common.h"
 #include "../error.h"

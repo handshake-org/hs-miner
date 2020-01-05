@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "common.h"
-#include "blake2.h"
+#include "blake2b.h"
 #include "sha3.h"
 #include "header.h"
 #include "error.h"
