@@ -20,7 +20,7 @@ class Miner {
     this.count = 1;
     this.sequence = 0;
     this.hdr = Buffer.alloc(miner.HDR_SIZE, 0x00);
-    this.target = options.target;
+    this.target = options.target || Buffer.alloc(32, 0xff);
     this.height = 0;
     this.mining = false;
     this.offset = 0;
