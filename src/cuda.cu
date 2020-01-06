@@ -728,6 +728,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     cudaSetDevice(options->device);
     cudaMalloc(&out_nonce, sizeof(uint32_t));
     cudaMalloc(&out_match, sizeof(bool));
+    cudaMemset(out_match, 0, sizeof(bool));
 
     // preheader + mask hash
     // nonce       - 4 bytes
