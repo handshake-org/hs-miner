@@ -135,7 +135,6 @@ class Miner {
       process.exit(1);
     }
 
-    debugger
     if (res.data.length !== miner.HDR_SIZE * 2)
       throw new Error('Bad header size.');
 
@@ -254,7 +253,8 @@ class Miner {
       if (!this.mining)
         break;
 
-      i++; // TODO: handle overflow
+      // Handle overflow
+      i = i++ % 1000;
       const [hdr, target, height, root] = this.getJob();
 
       increment(hdr, this.now());
@@ -271,10 +271,8 @@ class Miner {
         continue;
       }
 
-      if (!valid) {
-        increment(hdr, this.now());
+      if (!valid)
         continue;
-      }
 
       if (root !== this.root) {
         this.log('New job. Switching.');
@@ -379,6 +377,11 @@ function increment(hdr, now) {
       break;
   }
 
+  // Increment the extra nonce.
+  // TODO: increment part of the extra nonce and
+  // add randomness to part of the extra nonce
+  // so that this software can run in parallel and
+  // search different nonce spaces.
   for (let i = miner.NONCE_START; i < miner.NONCE_END; i++) {
     if (hdr[i] !== 0xff) {
       hdr[i] += 1;

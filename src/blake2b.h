@@ -22,6 +22,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #if defined(_MSC_VER)
 #define HS_BLAKE2_PACKED(x) __pragma(pack(push, 1)) x __pragma(pack(pop))
 #else
@@ -90,5 +94,9 @@ int hs_blake2b(
   const void *key,
   size_t keylen
 );
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
