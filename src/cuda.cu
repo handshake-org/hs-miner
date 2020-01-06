@@ -725,6 +725,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     uint32_t *out_nonce;
     bool *out_match;
 
+    cudaSetDevice(options->device);
     cudaMalloc(&out_nonce, sizeof(uint32_t));
     cudaMalloc(&out_match, sizeof(bool));
 
