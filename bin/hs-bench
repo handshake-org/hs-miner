@@ -4,18 +4,77 @@
 
 process.title = 'hs-bench';
 
+const Config = require('bcfg');
 const miner = require('../');
 
-// Max threads that can run on GTX 1080Ti
-const THREADS = 26843136;
-const MEGA = 1e6;
+const config = new Config('hsd', {
+  suffix: 'network',
+  fallback: 'main'
+});
+
+config.inject({ network: miner.NETWORK });
+
+config.load({
+  env: true,
+  argv: true
+});
+
+config.open('miner.conf');
+
+let iterations;
+let backend;
+let range;
+let grids;
+let blocks;
+let threads;
+let device;
+let version;
+let help;
+
+
+try {
+  iterations = config.uint(['iterations', 'i'], 10);
+  backend = config.str(['backend', 'b'], miner.BACKEND);
+  range = config.uint(['range', 'r'], 10000);
+  grids = config.uint(['grids', 'm'], 52428);
+  blocks = config.uint(['blocks', 'n'], 512);
+  threads = config.uint(['threads', 'x'], 26843136);
+  device = config.uint(['device', 'd'], -1);
+  version = config.bool(['version', 'v'], false);
+  help = config.bool(['help', 'h', '?'], false);
+} catch (e) {
+  console.error(e.message);
+  version = false;
+  help = true;
+}
+
+if (version) {
+  console.error(pkg.version);
+  process.exit(1);
+  return;
+}
+
+if (help) {
+  console.error(`hs-bench ${pkg.version}`);
+  console.error(
+    '  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
+  console.error('');
+  console.error('Usage:');
+  console.error('$ hs-bench');
+  console.error('            --backend [backend] --range [range]');
+  console.error('            --grids [grids], --blocks [blocks]');
+  console.error('            --threads [threads]');
+  console.error('            --device [device] --help');
+  process.exit(1);
+  return;
+}
 
 function bench(name) {
   const start = process.hrtime();
   return function end(ops) {
     const elapsed = process.hrtime(start);
     const time = elapsed[0] + elapsed[1] / 1e9;
-    const rate = ops / (MEGA * time);
+    const rate = ops / (1e6 * time);
 
     console.log('%s: ops=%d, time=%d, rate=%s Mh/sec',
       name, ops, time, rate.toFixed(5));
@@ -24,14 +83,25 @@ function bench(name) {
 
 const hdr = Buffer.alloc(256);
 
-for (let i=0; i < 10; i++) {
+const info = ''
+  + 'Backend: ' + backend + ', '
+  + 'Device: ' + device + '\n'
+  + 'Threads: ' + threads + ', '
+  + 'Grids: ' + grids + ', '
+  + 'Blocks: ' + blocks + ', '
+  + 'Iterations: ' + iterations;
+
+console.log(info);
+
+for (let i = 0; i < iterations; i++) {
   const mining = bench('hs-mine');
   miner.mine(hdr, {
-    backend: miner.BACKEND,
-    target: miner.TARGET,
-    grids: 52428,
-    blocks: 512,
-    threads: THREADS
+    backend: backend,
+    range: range,
+    grids: grids,
+    blocks: blocks,
+    threads: threads,
+    device: device === -1 ? null : device,
   });
-  mining(THREADS);
+  mining(threads);
 }
