@@ -21,33 +21,25 @@ config.load({
 
 config.open('miner.conf');
 
+let iterations;
 let backend;
 let range;
 let grids;
 let blocks;
 let threads;
 let device;
-let ssl;
-let host;
-let port;
-let user;
-let pass;
 let version;
 let help;
 
 
 try {
+  iterations = config.uint(['iterations', 'i'], 10);
   backend = config.str(['backend', 'b'], miner.BACKEND);
   range = config.uint(['range', 'r'], 10000);
   grids = config.uint(['grids', 'm'], 52428);
   blocks = config.uint(['blocks', 'n'], 512);
   threads = config.uint(['threads', 'x'], 26843136);
   device = config.uint(['device', 'd'], -1);
-  ssl = config.str(['rpc-ssl', 'l'], false);
-  host = config.str(['rpc-host', 'i'], 'localhost');
-  port = config.uint(['rpc-port', 'p'], 0);
-  user = config.str(['rpc-user', 'u'], 'hnsrpc');
-  pass = config.str(['rpc-pass', 'k'], '');
   version = config.bool(['version', 'v'], false);
   help = config.bool(['help', 'h', '?'], false);
 } catch (e) {
@@ -91,7 +83,17 @@ function bench(name) {
 
 const hdr = Buffer.alloc(256);
 
-for (let i=0; i < 10; i++) {
+const info = ''
+  + 'Backend: ' + backend + ', '
+  + 'Device: ' + device + '\n'
+  + 'Threads: ' + threads + ', '
+  + 'Grids: ' + grids + ', '
+  + 'Blocks: ' + blocks + ', '
+  + 'Iterations: ' + iterations;
+
+console.log(info);
+
+for (let i = 0; i < iterations; i++) {
   const mining = bench('hs-mine');
   miner.mine(hdr, {
     backend: backend,
