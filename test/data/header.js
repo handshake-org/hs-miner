@@ -1,8 +1,9 @@
 /**
- *
+ * test/data/header - Mock Block header in miner serialization.
+ * Copyright (c) 2019-2020, The Handshake Developers (MIT License).
  */
 
-// Genesis Header (Miner Serialization)
+// Miner Serialization
 exports.header = Buffer.from(''
   // nonce
   + '00000000'
