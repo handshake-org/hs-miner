@@ -11,51 +11,6 @@
 #include "header.h"
 #include "error.h"
 
-__device__ inline char
-_to_char(uint8_t n) {
-  if (n >= 0x00 && n <= 0x09)
-    return n + '0';
-
-  if (n >= 0x0a && n <= 0x0f)
-    return (n - 0x0a) + 'a';
-
-  return -1;
-}
-
-__device__ bool
-_hs_hex_encode(const uint8_t *data, size_t data_len, char *str) {
-  if (data == NULL && data_len != 0)
-    return false;
-
-  if (str == NULL)
-    return false;
-
-  size_t size = data_len << 1;
-
-  int i;
-  int p = 0;
-
-  for (i = 0; i < size; i++) {
-    char ch;
-
-    if (i & 1) {
-      ch = _to_char(data[p] & 15);
-      p += 1;
-    } else {
-      ch = _to_char(data[p] >> 4);
-    }
-
-    if (ch == -1)
-      return false;
-
-    str[i] = ch;
-  }
-
-  str[i] = '\0';
-
-  return true;
-}
-
 typedef unsigned char BYTE;
 typedef unsigned int  WORD;
 typedef unsigned long long LONG;
@@ -674,9 +629,10 @@ __device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
 
 __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
 {
-    uint32_t thread = blockIdx.x * blockDim.x + threadIdx.x;
+    // Set the nonce based on the thread.
+    uint32_t nonce = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (thread >= threads)
+    if (nonce >= threads)
     {
         return;
     }
@@ -688,9 +644,6 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     uint8_t left[64];
     uint8_t right[32];
     uint8_t share[128];
-
-    // Set the nonce based on the thread.
-    uint32_t nonce = thread;
 
     // Create the share using the nonce,
     // pre_header and commit_hash.
