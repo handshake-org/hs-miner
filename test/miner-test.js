@@ -2,6 +2,7 @@
 
 const assert = require('bsert');
 const Miner = require('../bin/miner');
+const {header} = require('./data/header');
 const {powHash} = require('./vendor/powHash');
 
 // Use a very low difficulty target
@@ -14,9 +15,8 @@ const target = Buffer.concat([
 
 assert(target.length === 32);
 
+const backends = Miner.getBackends();
 let miner;
-
-const backends = ['simple'];
 
 describe('Miner', function() {
   // Run the test suite for each backend
@@ -32,9 +32,8 @@ describe('Miner', function() {
 
     describe(`Backend: ${backend}`, function() {
       it('should mine a valid block', async () => {
-        const [header] = await miner.getJob();
-
         let nonce = 0, valid = false;
+
         while (!valid) {
           [nonce, valid] = await miner.mine(header, target);
         }
