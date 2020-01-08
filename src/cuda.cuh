@@ -1,3 +1,9 @@
+/*!
+ * cuda.cuh - CUDA Mining header for hs-mminer
+ * Copyright (c) 2019-2020, The Handshake Developers (MIT License).
+ * https://github.com/handshake-org/hs-miner
+ */
+
 #pragma once
 
 __device__ inline char
@@ -28,10 +34,10 @@ cuda_hs_hex_encode(const uint8_t *data, size_t data_len, char *str) {
     char ch;
 
     if (i & 1) {
-      ch = _to_char(data[p] & 15);
+      ch = cuda_to_char(data[p] & 15);
       p += 1;
     } else {
-      ch = _to_char(data[p] >> 4);
+      ch = cuda_to_char(data[p] >> 4);
     }
 
     if (ch == -1)

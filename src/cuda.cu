@@ -651,7 +651,6 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     memcpy(share + 4, _pre_header + 4, 92);
     memcpy(share + 96, _commit_hash, 32);
 
-
     // Generate left by hashing the share
     // with blake2b-512.
     cuda_blake2b_init(&b_ctx, NULL, 0, 512);
