@@ -1,9 +1,60 @@
+/*!
+ * cuda.cu - CUDA Mining for hs-mminer
+ * Copyright (c) 2019-2020, The Handshake Developers (MIT License).
+ * https://github.com/handshake-org/hs-miner
+ */
+
 #include <stdio.h>
 #include "common.h"
 #include "blake2b.h"
 #include "sha3.h"
 #include "header.h"
 #include "error.h"
+
+__device__ inline char
+_to_char(uint8_t n) {
+  if (n >= 0x00 && n <= 0x09)
+    return n + '0';
+
+  if (n >= 0x0a && n <= 0x0f)
+    return (n - 0x0a) + 'a';
+
+  return -1;
+}
+
+__device__ bool
+_hs_hex_encode(const uint8_t *data, size_t data_len, char *str) {
+  if (data == NULL && data_len != 0)
+    return false;
+
+  if (str == NULL)
+    return false;
+
+  size_t size = data_len << 1;
+
+  int i;
+  int p = 0;
+
+  for (i = 0; i < size; i++) {
+    char ch;
+
+    if (i & 1) {
+      ch = _to_char(data[p] & 15);
+      p += 1;
+    } else {
+      ch = _to_char(data[p] >> 4);
+    }
+
+    if (ch == -1)
+      return false;
+
+    str[i] = ch;
+  }
+
+  str[i] = '\0';
+
+  return true;
+}
 
 typedef unsigned char BYTE;
 typedef unsigned int  WORD;
@@ -623,7 +674,8 @@ __device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
 
 __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
 {
-    unsigned int thread = blockIdx.x * blockDim.x + threadIdx.x;
+    uint32_t thread = blockIdx.x * blockDim.x + threadIdx.x;
+
     if (thread >= threads)
     {
         return;
@@ -645,6 +697,7 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     memcpy(share, &nonce, 4);
     memcpy(share + 4, _pre_header + 4, 92);
     memcpy(share + 96, _commit_hash, 32);
+
 
     // Generate left by hashing the share
     // with blake2b-512.
@@ -673,9 +726,9 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     // hash satisfies the target. This could be
     // either the network target or the pool target.
     if (cuda_memcmp(hash, _target, 32) <= 0) {
-        *out_nonce = thread;
-        *out_match = true;
-        return;
+      *out_nonce = nonce;
+      *out_match = true;
+      return;
     }
 }
 
@@ -760,17 +813,18 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
     cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
     cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
+
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
-        printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
-        // TOOD: cudaFree?
-        return HS_ENOSOLUTION;
+      printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
+      // TOOD: cudaFree?
+      return HS_ENOSOLUTION;
     }
     cudaFree(out_nonce);
     cudaFree(out_match);
 
     if (*match)
-        return HS_SUCCESS;
+      return HS_SUCCESS;
 
     return HS_ENOSOLUTION;
 }
