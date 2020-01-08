@@ -1,39 +1,59 @@
 'use strict';
 
-const assert = require('assert');
+const assert = require('bsert');
 const Miner = require('../bin/miner');
+const {powHash} = require('./vendor/powHash');
 
 // Use a very low difficulty target
 // e.g: 00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-const TARGET = Buffer.concat([Buffer.alloc(1), Buffer.alloc(31, 0xff)]);
+const target = Buffer.concat([
+  Buffer.alloc(1, 0x00),
+  Buffer.alloc(1, 0x30),
+  Buffer.alloc(30, 0x00)
+]);
 
-const miner = new Miner({
-  backend: Miner.BACKEND,
-  target: TARGET,
-  range: 10000,
-  grids: 1000,
-  blocks: 10,
-  threads: 10000
-});
+assert(target.length === 32);
+
+let miner;
+
+const backends = ['simple'];
 
 describe('Miner', function() {
-  it('should mine a valid block', async () => {
-    const job = await miner.getJob();
-    const [header, target] = job;
+  // Run the test suite for each backend
+  for (const backend of backends) {
+    miner = new Miner({
+      backend: backend,
+      target: target,
+      range: 10000,
+      grids: 1000,
+      blocks: 10,
+      threads: 10000
+    });
 
-    let nonce = 0, valid = false;
-    while (!valid) {
-      [nonce, valid] = await miner.mine(header, target);
-    }
+    describe(`Backend: ${backend}`, function() {
+      it('should mine a valid block', async () => {
+        const [header] = await miner.getJob();
 
-    assert(valid);
+        let nonce = 0, valid = false;
+        while (!valid) {
+          [nonce, valid] = await miner.mine(header, target);
+        }
 
-    const hdr = miner.toBlock(header, nonce);
+        assert(valid);
 
-    assert(miner.verify(hdr, TARGET));
+        const hdr = miner.toBlock(header, nonce);
 
-    // Avoid zero nonces, to make sure backend is actually grinding on the
-    // nonce
-    assert(nonce !== 0);
-  });
+        // The hash matches the mock Proof of Work algorithm.
+        const hash = miner.hashHeader(hdr)
+        assert.bufferEqual(hash, powHash(hdr));
+
+        const isvalid = miner.verify(hdr, target);
+        assert(isvalid);
+
+        // Avoid zero nonces to make sure the backend
+        // is actually grinding on the nonce
+        assert(nonce !== 0);
+      });
+    })
+  }
 });
