@@ -45,7 +45,7 @@ describe('Miner', function() {
         const hdr = miner.toBlock(header, nonce);
 
         // The hash matches the mock Proof of Work algorithm.
-        const hash = miner.hashHeader(hdr)
+        const hash = miner.hashHeader(hdr);
         assert.bufferEqual(hash, powHash(hdr));
 
         const isvalid = miner.verify(hdr, target);
@@ -55,6 +55,6 @@ describe('Miner', function() {
         // is actually grinding on the nonce
         assert(nonce !== 0);
       });
-    })
+    });
   }
 });
