@@ -769,7 +769,7 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     cudaFree(out_nonce);
     cudaFree(out_match);
 
-    if (match)
+    if (*match)
         return HS_SUCCESS;
 
     return HS_ENOSOLUTION;
