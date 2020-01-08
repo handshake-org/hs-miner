@@ -18,6 +18,8 @@ assert(target.length === 32);
 const backends = Miner.getBackends();
 let miner;
 
+assert(backends.length > 0);
+
 describe('Miner', function() {
   // Run the test suite for each backend
   for (const backend of backends) {
