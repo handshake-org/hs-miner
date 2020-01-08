@@ -52,6 +52,9 @@ int
 hs_header_encode(const hs_header_t *hdr, uint8_t *data);
 
 int
+hs_header_share_encode(const hs_header_t *hdr, uint8_t *data);
+
+int
 hs_header_pre_write(const hs_header_t *hdr, uint8_t **data);
 
 int
