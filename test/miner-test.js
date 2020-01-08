@@ -5,7 +5,7 @@ const Miner = require('../bin/miner');
 
 // Use a very low difficulty target
 // e.g: 00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-const TARGET = Buffer.concat([Buffer.alloc(1), Buffer.alloc(31, 0xff)])
+const TARGET = Buffer.concat([Buffer.alloc(1), Buffer.alloc(31, 0xff)]);
 
 const miner = new Miner({
   backend: Miner.BACKEND,

@@ -6,6 +6,7 @@ process.title = 'hs-bench';
 
 const Config = require('bcfg');
 const miner = require('../');
+const pkg = require('../package.json');
 
 const config = new Config('hsd', {
   suffix: 'network',
@@ -30,7 +31,6 @@ let threads;
 let device;
 let version;
 let help;
-
 
 try {
   iterations = config.uint(['iterations', 'i'], 10);
@@ -101,7 +101,7 @@ for (let i = 0; i < iterations; i++) {
     grids: grids,
     blocks: blocks,
     threads: threads,
-    device: device === -1 ? null : device,
+    device: device === -1 ? null : device
   });
   mining(threads);
 }

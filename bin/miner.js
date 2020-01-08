@@ -427,7 +427,7 @@ function readHeader(hdr) {
     witnessRoot: hdr.toString('hex', 184, 216),
     merkleRoot: hdr.toString('hex', 216, 248),
     version: hdr.readUInt32LE(248),
-    bits: hdr.readUInt32LE(252),
+    bits: hdr.readUInt32LE(252)
   };
 }
 
