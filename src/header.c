@@ -143,6 +143,44 @@ hs_header_pre_encode(const hs_header_t *hdr, uint8_t *data) {
   return hs_header_pre_write(hdr, &data);
 }
 
+
+// Converts a miner serialized header into a share
+// which includes the commit hash.
+int
+hs_header_share_write(const hs_header_t *hdr, uint8_t **data) {
+  int s = 0;
+
+  uint8_t sub_header[128];
+  uint8_t sub_hash[32];
+  uint8_t commit_hash[32];
+
+  hs_header_sub_encode(hdr, sub_header);
+
+  hs_blake2b_ctx b_ctx;
+
+  hs_blake2b_init(&b_ctx, 32);
+  hs_blake2b_update(&b_ctx, sub_header, 128);
+  hs_blake2b_final(&b_ctx, sub_hash, 32);
+
+  hs_blake2b_init(&b_ctx, 32);
+  hs_blake2b_update(&b_ctx, sub_hash, 32);
+  hs_blake2b_update(&b_ctx, hdr->mask_hash, 32);
+  hs_blake2b_final(&b_ctx, commit_hash, 32);
+
+  s += write_u32(data, hdr->nonce);
+  s += write_u64(data, hdr->time);
+  s += write_bytes(data, hdr->padding, 20);
+  s += write_bytes(data, hdr->prev_block, 32);
+  s += write_bytes(data, hdr->name_root, 32);
+  s += write_bytes(data, commit_hash, 32);
+  return s;
+}
+
+int
+hs_header_share_encode(const hs_header_t *hdr, uint8_t *data) {
+  return hs_header_share_write(hdr, &data);
+}
+
 int
 hs_header_sub_write(const hs_header_t *hdr, uint8_t **data) {
   int s = 0;
@@ -189,8 +227,7 @@ hs_header_padding(const hs_header_t *hdr, uint8_t *pad, size_t size) {
 
 void
 hs_header_pow(hs_header_t *hdr, uint8_t *hash) {
-  int size = hs_header_pre_size(hdr);
-  uint8_t pre[size];
+  uint8_t share[128];
   uint8_t pad8[8];
   uint8_t pad32[32];
   uint8_t left[64];
@@ -200,17 +237,18 @@ hs_header_pow(hs_header_t *hdr, uint8_t *hash) {
   hs_header_padding(hdr, pad8, 8);
   hs_header_padding(hdr, pad32, 32);
 
+  hs_header_share_encode(hdr, share);
+
   // Generate left.
-  hs_header_pre_encode(hdr, pre);
   hs_blake2b_ctx ctx;
   assert(hs_blake2b_init(&ctx, 64) == 0);
-  hs_blake2b_update(&ctx, pre, size);
+  hs_blake2b_update(&ctx, share, 128);
   assert(hs_blake2b_final(&ctx, left, 64) == 0);
 
   // Generate right.
   hs_sha3_ctx s_ctx;
   hs_sha3_256_init(&s_ctx);
-  hs_sha3_update(&s_ctx, pre, size);
+  hs_sha3_update(&s_ctx, share, 128);
   hs_sha3_update(&s_ctx, pad8, 8);
   hs_sha3_final(&s_ctx, right);
 

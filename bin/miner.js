@@ -358,6 +358,14 @@ class Miner {
   verify(header, target) {
     return miner.verify(header, target);
   }
+
+  hasBackend(backend) {
+    return miner.hasBackend(backend);
+  }
+
+  static getBackends() {
+    return miner.getBackends();
+  }
 }
 
 /*
@@ -454,4 +462,6 @@ function getPort() {
  * Expose
  */
 
+Miner.readHeader = readHeader;
+Miner.readJSON = readJSON;
 module.exports = Miner;

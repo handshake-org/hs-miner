@@ -1,3 +1,9 @@
+/*!
+ * cuda.cu - CUDA Mining for hs-mminer
+ * Copyright (c) 2019-2020, The Handshake Developers (MIT License).
+ * https://github.com/handshake-org/hs-miner
+ */
+
 #include <stdio.h>
 #include "common.h"
 #include "blake2b.h"
@@ -623,8 +629,10 @@ __device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
 
 __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
 {
-    unsigned int thread = blockIdx.x * blockDim.x + threadIdx.x;
-    if (thread >= threads)
+    // Set the nonce based on the thread.
+    uint32_t nonce = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (nonce >= threads)
     {
         return;
     }
@@ -636,9 +644,6 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     uint8_t left[64];
     uint8_t right[32];
     uint8_t share[128];
-
-    // Set the nonce based on the thread.
-    uint32_t nonce = thread;
 
     // Create the share using the nonce,
     // pre_header and commit_hash.
@@ -673,9 +678,9 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     // hash satisfies the target. This could be
     // either the network target or the pool target.
     if (cuda_memcmp(hash, _target, 32) <= 0) {
-        *out_nonce = thread;
-        *out_match = true;
-        return;
+      *out_nonce = nonce;
+      *out_match = true;
+      return;
     }
 }
 
@@ -760,17 +765,18 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
     cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
     cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
+
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
-        printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
-        // TOOD: cudaFree?
-        return HS_ENOSOLUTION;
+      printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
+      // TOOD: cudaFree?
+      return HS_ENOSOLUTION;
     }
     cudaFree(out_nonce);
     cudaFree(out_match);
 
     if (*match)
-        return HS_SUCCESS;
+      return HS_SUCCESS;
 
     return HS_ENOSOLUTION;
 }

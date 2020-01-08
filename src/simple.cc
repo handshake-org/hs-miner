@@ -26,6 +26,11 @@ hs_simple_run(
   if (header_len != HEADER_SIZE)
     return HS_EBADARGS;
 
+  // Randomize the extra nonce for
+  // each set of CPU jobs.
+  uint64_t extra_nonce = hs_nonce();
+  memset(header->extra_nonce, extra_nonce, sizeof(extra_nonce));
+
   hs_header_decode(options->header, header_len, header);
 
   uint8_t hash[32];
@@ -34,16 +39,11 @@ hs_simple_run(
   uint8_t target[32];
   memcpy(target, options->target, 32);
 
-  uint64_t extra_nonce = hs_nonce();
-
-  // Randomize the extra nonce for
-  // each set of CPU jobs.
-  memset(header->extra_nonce, extra_nonce, sizeof(extra_nonce));
-
   for (uint32_t r = 0; r < range; r++) {
     if (!options->running)
       break;
 
+    // Increment nonce on share
     header->nonce = nonce + r;
 
     hs_header_pow(header, hash);

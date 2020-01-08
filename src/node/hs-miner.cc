@@ -1,6 +1,7 @@
 /**
  * hs-miner.cc
  * Copyright (c) 2018, Christopher Jeffrey (MIT License)
+ * Copyright (c) 2019-2020, The Handshake Developers (MIT License).
  */
 
 #include <assert.h>
@@ -512,8 +513,11 @@ NAN_METHOD(verify) {
   if (target_len != 32)
     return Nan::ThrowTypeError("Invalid target size.");
 
+  hs_header_t header[HEADER_SIZE];
+  hs_header_decode(hdr, HEADER_SIZE, header);
+
   int32_t rc = hs_verify(
-    (hs_header_t *)hdr,
+    header,
     (uint8_t *)target
   );
 
@@ -572,6 +576,8 @@ NAN_METHOD(sha3) {
   info.GetReturnValue().Set(Nan::CopyBuffer((char *)hash, 32).ToLocalChecked());
 }
 
+// Expects full miner serialization, meaning the data that is
+// returned from `getwork`.
 NAN_METHOD(hash_header) {
   if (info.Length() != 1)
     return Nan::ThrowError("hash_header() requires arguments.");
