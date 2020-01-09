@@ -99,9 +99,9 @@ console.log('Match: %s', match);
 - `miner.BACKEND` - Default backend.
 - `miner.TARGET` - Default target.
 - `miner.HDR_SIZE` - Handshake to-be-solved header size (256).
-- `miner.NONCE_SIZE` - Total size of nonce (20).
-- `miner.NONCE_START` - Start of nonce position (144).
-- `miner.NONCE_END` - End of extra nonce position (160).
+- `miner.EXTRANONCE_SIZE` - Total size of nonce (24).
+- `miner.EXTRANONCE_START` - Start of nonce position (128).
+- `miner.EXTRANONCE_END` - End of extra nonce position (152).
 
 ## Options
 
