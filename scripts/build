@@ -54,10 +54,28 @@ compile_cuda() {
     ${miner}.o ${miner}.dlink.o
 }
 
+preprocess_cuda() {
+  local miner="$1"
+
+  ${NVCC} -E -ccbin ${CXX} --compiler-options='-fPIC' \
+    $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
+    -m64 -arch=sm_35 -dc -o ${miner}.cup -c \
+    ${miner}.cu
+}
+
+if test -n "$EXTRA_ARG"; then
+  echo "Extra: $EXTRA_ARG"
+fi
+
 echo $CUDA_HAS
 if test $CUDA_HAS -eq 1; then
   compile_cuda src/device
   compile_cuda src/cuda
+
+  if test "$EXTRA_ARG" = "preprocess"; then
+    preprocess_cuda src/device
+    preprocess_cuda src/cuda
+  fi
 else
   rm -f src/device.a
   rm -f src/cuda.a

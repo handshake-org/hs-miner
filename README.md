@@ -247,6 +247,13 @@ $ npm install hs-miner
 
 TODO
 
+## Debugging
+
+Pass an extra argument to the `make` commands to specify special behavior.
+Run `make regtest extra=preprocess` to output `.cup` files for the CUDA files.
+Or pass an environment variable `EXTRA_ARG` to one of the npm `install-*`
+scripts for the same behavior, such as `$ EXTRA_ARG=preprocess npm run install`.
+
 ## Contribution and License Agreement
 
 If you contribute code to this project, you are implicitly allowing your code
