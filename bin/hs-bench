@@ -92,16 +92,24 @@ const info = ''
   + 'Iterations: ' + iterations;
 
 console.log(info);
+(async () => {
+  for (let i = 0; i < iterations; i++) {
+    const mining = bench('hs-mine');
 
-for (let i = 0; i < iterations; i++) {
-  const mining = bench('hs-mine');
-  miner.mine(hdr, {
-    backend: backend,
-    range: range,
-    grids: grids,
-    blocks: blocks,
-    threads: threads,
-    device: device === -1 ? null : device
-  });
-  mining(threads);
-}
+    await miner.mineAsync(hdr, {
+      backend: backend,
+      range: range,
+      grids: grids,
+      blocks: blocks,
+      threads: threads,
+      target: Buffer.alloc(32, 0x00),
+      device: device === -1 ? null : device
+    });
+
+    mining(threads);
+  }
+
+})().catch(err => {
+  console.log(err);
+  process.exit(1);
+});
