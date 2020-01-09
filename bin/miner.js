@@ -373,13 +373,13 @@ class Miner {
  */
 
 function increment(hdr, now) {
-  const time = readTime(hdr, 132);
+  const time = readTime(hdr, 4);
 
   switch (miner.NETWORK) {
     case 'main':
     case 'regtest':
       if (now > time) {
-        writeTime(hdr, now, 132);
+        writeTime(hdr, now, 4);
         return;
       }
       break;
