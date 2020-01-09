@@ -609,7 +609,6 @@ __global__ void kernel_keccak_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 
 // Global memory is underscore prefixed
 __constant__ uint8_t _pre_header[96];
-__constant__ uint8_t _sub_header[128];
 __constant__ uint8_t _target[32];
 __constant__ uint8_t _padding[32];
 __constant__ uint8_t _commit_hash[32];
@@ -754,7 +753,6 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     // total       - 128 bytes
 
     cudaMemcpyToSymbol(_pre_header, options->header, 96);
-    cudaMemcpyToSymbol(_sub_header, options->header + 128, 128);
     cudaMemcpyToSymbol(_target, options->target, 32);
 
     // Pointers to prev block and tree root.
