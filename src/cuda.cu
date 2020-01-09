@@ -24,8 +24,6 @@ typedef unsigned long long LONG;
 typedef struct {
 
     WORD digestlen;
-    BYTE key[64];
-    WORD keylen;
 
     BYTE buff[BLAKE2B_BLOCK_LENGTH];
     int64_t chain[BLAKE2B_CHAIN_SIZE];
@@ -47,41 +45,6 @@ __constant__ LONG BLAKE2B_IVS[8] =
         0xa54ff53a5f1d36f1, 0x510e527fade682d1, 0x9b05688c2b3e6c1f,
         0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
 };
-
-const LONG CPU_BLAKE2B_IVS[8] =
-{
-        0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b,
-        0xa54ff53a5f1d36f1, 0x510e527fade682d1, 0x9b05688c2b3e6c1f,
-        0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
-};
-
-void cpu_blake2b_init(cuda_blake2b_ctx_t *ctx, BYTE* key, WORD keylen, WORD digestbitlen)
-{
-    memset(ctx, 0, sizeof(cuda_blake2b_ctx_t));
-    memcpy(ctx->buff, key, keylen);
-    memcpy(ctx->key, key, keylen);
-    ctx->keylen = keylen;
-
-    ctx->digestlen = digestbitlen >> 3;
-    ctx->pos = 0;
-    ctx->t0 = 0;
-    ctx->t1 = 0;
-    ctx->f0 = 0;
-    ctx->chain[0] = CPU_BLAKE2B_IVS[0] ^ (ctx->digestlen | (ctx->keylen << 8) | 0x1010000);
-    ctx->chain[1] = CPU_BLAKE2B_IVS[1];
-    ctx->chain[2] = CPU_BLAKE2B_IVS[2];
-    ctx->chain[3] = CPU_BLAKE2B_IVS[3];
-    ctx->chain[4] = CPU_BLAKE2B_IVS[4];
-    ctx->chain[5] = CPU_BLAKE2B_IVS[5];
-    ctx->chain[6] = CPU_BLAKE2B_IVS[6];
-    ctx->chain[7] = CPU_BLAKE2B_IVS[7];
-
-
-    if (keylen > 0)
-        ctx->pos = BLAKE2B_BLOCK_LENGTH;
-}
-
-
 
 __constant__ unsigned char BLAKE2B_SIGMAS[12][16] =
 {
@@ -165,17 +128,16 @@ __device__ __forceinline__ void cuda_blake2b_compress(cuda_blake2b_ctx_t *ctx, B
         ctx->chain[offset] = ctx->chain[offset] ^ ctx->state[offset] ^ ctx->state[offset + 8];
 }
 
-__device__ void cuda_blake2b_init(cuda_blake2b_ctx_t *ctx, BYTE* key, WORD keylen, WORD digestbitlen)
+__device__ void cuda_blake2b_init(cuda_blake2b_ctx_t *ctx, WORD digestbitlen)
 {
     memset(ctx, 0, sizeof(cuda_blake2b_ctx_t));
 
-    ctx->keylen = keylen;
     ctx->digestlen = digestbitlen >> 3;
     ctx->pos = 0;
     ctx->t0 = 0;
     ctx->t1 = 0;
     ctx->f0 = 0;
-    ctx->chain[0] = BLAKE2B_IVS[0] ^ (ctx->digestlen | (ctx->keylen << 8) | 0x1010000);
+    ctx->chain[0] = BLAKE2B_IVS[0] ^ (ctx->digestlen | 0x1010000);
     ctx->chain[1] = BLAKE2B_IVS[1];
     ctx->chain[2] = BLAKE2B_IVS[2];
     ctx->chain[3] = BLAKE2B_IVS[3];
@@ -183,12 +145,6 @@ __device__ void cuda_blake2b_init(cuda_blake2b_ctx_t *ctx, BYTE* key, WORD keyle
     ctx->chain[5] = BLAKE2B_IVS[5];
     ctx->chain[6] = BLAKE2B_IVS[6];
     ctx->chain[7] = BLAKE2B_IVS[7];
-
-    memcpy(ctx->buff, key, keylen);
-    memcpy(ctx->key, key, keylen);
-
-    if (keylen > 0)
-        ctx->pos = BLAKE2B_BLOCK_LENGTH;
 }
 
 __device__ void cuda_blake2b_update(cuda_blake2b_ctx_t *ctx, BYTE* in, LONG inlen)
@@ -652,7 +608,7 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
 
     // Generate left by hashing the share
     // with blake2b-512.
-    cuda_blake2b_init(&b_ctx, NULL, 0, 512);
+    cuda_blake2b_init(&b_ctx, 512);
     cuda_blake2b_update(&b_ctx, share, 128);
     cuda_blake2b_final(&b_ctx, left);
 
@@ -667,7 +623,7 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     // Generate share hash by hashing together
     // the left, 32 bytes of padding and the
     // right with blake2b-256.
-    cuda_blake2b_init(&b_ctx, NULL, 0, 256);
+    cuda_blake2b_init(&b_ctx, 256);
     cuda_blake2b_update(&b_ctx, left, 64);
     cuda_blake2b_update(&b_ctx, _padding, 32);
     cuda_blake2b_update(&b_ctx, right, 32);
