@@ -23,13 +23,10 @@ hs_simple_run(
   if (options->range)
     range = options->range;
 
+  uint32_t max = nonce + range;
+
   if (header_len != HEADER_SIZE)
     return HS_EBADARGS;
-
-  // Randomize the extra nonce for
-  // each set of CPU jobs.
-  uint64_t extra_nonce = hs_nonce();
-  memset(header->extra_nonce, extra_nonce, sizeof(extra_nonce));
 
   hs_header_decode(options->header, header_len, header);
 
@@ -39,22 +36,29 @@ hs_simple_run(
   uint8_t target[32];
   memcpy(target, options->target, 32);
 
-  for (uint32_t r = 0; r < range; r++) {
+  // Cache padding
+  uint8_t pad32[32];
+  hs_header_padding(header, pad32, 32);
+
+  // Compute share data
+  uint8_t share[128];
+  hs_header_share_encode(header, share);
+
+  for (; nonce < max; nonce++) {
     if (!options->running)
       break;
 
-    // Increment nonce on share
-    header->nonce = nonce + r;
+    // Insert nonce into share
+    memcpy(share, &nonce, 4);
 
-    hs_header_pow(header, hash);
+    hs_header_share_pow(share, pad32, hash);
 
     if (memcmp(hash, target, 32) < 0) {
       *match = true;
-      *result = header->nonce;
+      *result = nonce;
       return HS_SUCCESS;
     }
   }
 
   return HS_ENOSOLUTION;
 }
-
