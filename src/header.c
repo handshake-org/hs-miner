@@ -226,6 +226,33 @@ hs_header_padding(const hs_header_t *hdr, uint8_t *pad, size_t size) {
 }
 
 void
+hs_header_share_pow(uint8_t *share, uint8_t *pad32, uint8_t *hash) {
+  uint8_t left[64];
+  uint8_t right[32];
+
+  // Generate left.
+  hs_blake2b_ctx ctx;
+  assert(hs_blake2b_init(&ctx, 64) == 0);
+  hs_blake2b_update(&ctx, share, 128);
+  assert(hs_blake2b_final(&ctx, left, 64) == 0);
+
+  // Generate right.
+  hs_sha3_ctx s_ctx;
+  hs_sha3_256_init(&s_ctx);
+  hs_sha3_update(&s_ctx, share, 128);
+  hs_sha3_update(&s_ctx, pad32, 8);
+  hs_sha3_final(&s_ctx, right);
+
+  // Generate hash.
+  hs_blake2b_ctx b_ctx;
+  assert(hs_blake2b_init(&b_ctx, 32) == 0);
+  hs_blake2b_update(&b_ctx, left, 64);
+  hs_blake2b_update(&b_ctx, pad32, 32);
+  hs_blake2b_update(&b_ctx, right, 32);
+  assert(hs_blake2b_final(&b_ctx, hash, 32) == 0);
+}
+
+void
 hs_header_pow(hs_header_t *hdr, uint8_t *hash) {
   uint8_t share[128];
   uint8_t pad8[8];

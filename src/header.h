@@ -79,6 +79,9 @@ void
 hs_header_padding(const hs_header_t *hdr, uint8_t *pad, size_t size);
 
 void
+hs_header_share_pow(uint8_t *share, uint8_t *pad32, uint8_t *hash);
+
+void
 hs_header_pow(hs_header_t *hdr, uint8_t *hash);
 
 int
