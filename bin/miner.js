@@ -390,7 +390,7 @@ function increment(hdr, now) {
   // add randomness to part of the extra nonce
   // so that this software can run in parallel and
   // search different nonce spaces.
-  for (let i = miner.NONCE_START; i < miner.NONCE_END; i++) {
+  for (let i = miner.EXTRANONCE_START; i < miner.EXTRANONCE_END; i++) {
     if (hdr[i] !== 0xff) {
       hdr[i] += 1;
       break;
