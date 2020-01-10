@@ -53,7 +53,7 @@ hs_simple_run(
 
     hs_header_share_pow(share, pad32, hash);
 
-    if (memcmp(hash, target, 32) < 0) {
+    if (memcmp(hash, target, 32) <= 0) {
       *match = true;
       *result = nonce;
       return HS_SUCCESS;
