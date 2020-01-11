@@ -38,4 +38,7 @@ rm -f src/cuda/device.dlink.o
 rm -f src/cuda/blake2b.dlink.o
 rm -f src/cuda/sha3.dlink.o
 
+rm -rf src/device.cup
+rm -rf src/cuda.cup
+
 node-gyp clean

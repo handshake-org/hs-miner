@@ -21,6 +21,7 @@ typedef unsigned long long LONG;
 #define BLAKE2B_CHAIN_LENGTH (BLAKE2B_CHAIN_SIZE * sizeof(int64_t))
 #define BLAKE2B_STATE_SIZE 16
 #define BLAKE2B_STATE_LENGTH (BLAKE2B_STATE_SIZE * sizeof(int64_t))
+
 typedef struct {
 
     WORD digestlen;
@@ -35,6 +36,7 @@ typedef struct {
     LONG f0;
 
 } cuda_blake2b_ctx_t;
+
 typedef cuda_blake2b_ctx_t CUDA_BLAKE2B_CTX;
 
 __constant__ CUDA_BLAKE2B_CTX c_CTX;
