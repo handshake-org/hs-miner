@@ -6,21 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Taken from:
-// https://github.com/wahern/dns/blob/master/src/dns.c
-#ifndef _HS_RANDOM
-#if defined(HAVE_ARC4RANDOM)  \
-  || defined(__OpenBSD__)     \
-  || defined(__FreeBSD__)     \
-  || defined(__NetBSD__)      \
-  || defined(__APPLE__)
-#define _HS_RANDOM arc4random
-#elif defined(__linux)
-#define _HS_RANDOM random
-#else
 #define _HS_RANDOM rand
-#endif
-#endif
 
 int64_t
 hs_now(void) {
@@ -108,7 +94,7 @@ to_nibble(char s) {
 
 static inline char
 to_char(uint8_t n) {
-  if (n >= 0x00 && n <= 0x09)
+  if (n <= 0x09)
     return n + '0';
 
   if (n >= 0x0a && n <= 0x0f)
@@ -132,10 +118,10 @@ hs_hex_encode(const uint8_t *data, size_t data_len, char *str) {
 
   size_t size = data_len << 1;
 
-  int i;
+  int i, n;
   int p = 0;
 
-  for (i = 0; i < size; i++) {
+  for (i = 0, n = (int)size; i < n; i++) {
     char ch;
 
     if (i & 1) {
