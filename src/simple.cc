@@ -1,17 +1,25 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "common.h"
 #include "header.h"
 #include "error.h"
 #include "utils.h"
 
-int32_t
-hs_simple_run(
-  hs_options_t *options,
-  uint32_t *result,
-  bool *match
-) {
+typedef struct hs_thread_args_s {
+  hs_options_t *options;
+  uint32_t *result;
+  bool *match;
+} hs_thread_args_t;
+
+void
+*hs_simple_thread(void *ptr) {
+  hs_thread_args_t *args = (hs_thread_args_t *)ptr;
+  hs_options_t *options = args->options;
+  uint32_t *result = args->result;
+  bool *match = args->match;
+
   uint32_t nonce = 0;
   uint32_t range = 1;
   size_t header_len = options->header_len;
@@ -26,7 +34,7 @@ hs_simple_run(
   uint32_t max = nonce + range;
 
   if (header_len != HEADER_SIZE)
-    return HS_EBADARGS;
+    return (void *)HS_EBADARGS;
 
   hs_header_decode(options->header, header_len, header);
 
@@ -47,6 +55,7 @@ hs_simple_run(
   for (; nonce < max; nonce++) {
     if (!options->running)
       break;
+    // printf("Thread: %u Nonce: %zu\n", pthread_self(), nonce);
 
     // Insert nonce into share
     memcpy(share, &nonce, 4);
@@ -56,9 +65,40 @@ hs_simple_run(
     if (memcmp(hash, target, 32) <= 0) {
       *match = true;
       *result = nonce;
-      return HS_SUCCESS;
+      return (void *)HS_SUCCESS;
     }
   }
 
-  return HS_ENOSOLUTION;
+  return (void *)HS_ENOSOLUTION;
+}
+
+int32_t
+hs_simple_run(
+  hs_options_t *options,
+  uint32_t *result,
+  bool *match
+) {
+  hs_thread_args_t args;
+  args.options = options;
+  args.result = result;
+  args.match = match;
+
+  uint8_t NUM_THREADS = options->threads;
+  pthread_t threads[NUM_THREADS];
+
+  for(uint8_t i = 0; i < NUM_THREADS; i++) {
+    // printf("Creating thread: %u\n", i);
+    int err = pthread_create(&threads[i], NULL, hs_simple_thread, &args);
+    if (err != 0) {
+      printf("Error creating thread: %u\n", err);
+      exit(err);
+    }
+  }
+
+  for(uint8_t i = 0; i < NUM_THREADS; i++) {
+    int32_t *rc;
+    pthread_join(threads[i], (void **)&rc);
+    // printf("Return code from thread %u: %zu\n", i, rc);
+  }
+  return HS_SUCCESS;
 }
