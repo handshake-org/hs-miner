@@ -92,14 +92,10 @@ to_nibble(char s) {
   return -1;
 }
 
-
 static inline char
 to_char(uint8_t n) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
-  if (n >= 0x00 && n <= 0x09)
+  if (n <= 0x09)
     return n + '0';
-#pragma GCC diagnostic pop
 
   if (n >= 0x0a && n <= 0x0f)
     return (n - 0x0a) + 'a';
