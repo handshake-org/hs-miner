@@ -94,14 +94,20 @@ __device__ void cuda_blake2b_G(cuda_blake2b_ctx_t *ctx, int64_t m1, int64_t m2, 
 
 __device__ __forceinline__ void cuda_blake2b_init_state(cuda_blake2b_ctx_t *ctx)
 {
-    memcpy(ctx->state, ctx->chain, BLAKE2B_CHAIN_LENGTH);
-    for (int i = 0; i < 4; i++)
-        ctx->state[BLAKE2B_CHAIN_SIZE + i] = BLAKE2B_IVS[i];
 
-    ctx->state[12] = ctx->t0 ^ BLAKE2B_IVS[4];
-    ctx->state[13] = ctx->t1 ^ BLAKE2B_IVS[5];
-    ctx->state[14] = ctx->f0 ^ BLAKE2B_IVS[6];
-    ctx->state[15] = BLAKE2B_IVS[7];
+    memcpy(ctx->state, ctx->chain, BLAKE2B_CHAIN_LENGTH);
+
+    // Set blake2b initialization vectors 0-3
+    ctx->state[BLAKE2B_CHAIN_SIZE + 0] = 0x6a09e667f3bcc908;
+    ctx->state[BLAKE2B_CHAIN_SIZE + 1] = 0xbb67ae8584caa73b;
+    ctx->state[BLAKE2B_CHAIN_SIZE + 2] = 0x3c6ef372fe94f82b;
+    ctx->state[BLAKE2B_CHAIN_SIZE + 3] = 0xa54ff53a5f1d36f1;
+
+    // Hard code blake2b initialization vectors 4-7
+    ctx->state[12] = ctx->t0 ^ 0x510e527fade682d1;
+    ctx->state[13] = ctx->t1 ^ 0x9b05688c2b3e6c1f;
+    ctx->state[14] = ctx->f0 ^ 0x1f83d9abfb41bd6b;
+    ctx->state[15] = 0x5be0cd19137e2179;
 }
 
 __device__ __forceinline__ void cuda_blake2b_compress(cuda_blake2b_ctx_t *ctx, BYTE* in, WORD inoffset)
@@ -109,20 +115,132 @@ __device__ __forceinline__ void cuda_blake2b_compress(cuda_blake2b_ctx_t *ctx, B
     cuda_blake2b_init_state(ctx);
 
     LONG  m[16] = {0};
+#pragma unroll
     for (int j = 0; j < 16; j++)
         m[j] = cuda_blake2b_leuint64(in + inoffset + (j << 3));
 
-    for (int round = 0; round < BLAKE2B_ROUNDS; round++)
-    {
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][0]], m[BLAKE2B_SIGMAS[round][1]], 0, 4, 8, 12);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][2]], m[BLAKE2B_SIGMAS[round][3]], 1, 5, 9, 13);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][4]], m[BLAKE2B_SIGMAS[round][5]], 2, 6, 10, 14);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][6]], m[BLAKE2B_SIGMAS[round][7]], 3, 7, 11, 15);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][8]], m[BLAKE2B_SIGMAS[round][9]], 0, 5, 10, 15);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][10]], m[BLAKE2B_SIGMAS[round][11]], 1, 6, 11, 12);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][12]], m[BLAKE2B_SIGMAS[round][13]], 2, 7, 8, 13);
-        cuda_blake2b_G(ctx, m[BLAKE2B_SIGMAS[round][14]], m[BLAKE2B_SIGMAS[round][15]], 3, 4, 9, 14);
-    }
+    // 12 blake2b rounds in total
+    // round 0
+    cuda_blake2b_G(ctx, m[0], m[1], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[2], m[3], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[4], m[5], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[6], m[7], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[8], m[9], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[10], m[11], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[12], m[13], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[14], m[15], 3, 4, 9, 14);
+
+    // round 1
+    cuda_blake2b_G(ctx, m[14], m[10], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[4], m[8], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[9], m[15], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[13], m[6], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[1], m[12], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[0], m[2], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[11], m[7], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[5], m[3], 3, 4, 9, 14);
+
+
+    // round 2
+    cuda_blake2b_G(ctx, m[11], m[8], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[12], m[0], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[5], m[2], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[15], m[13], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[10], m[14], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[3], m[6], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[7], m[1], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[9], m[4], 3, 4, 9, 14);
+
+    // round 3
+    cuda_blake2b_G(ctx, m[7], m[9], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[3], m[1], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[13], m[12], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[11], m[14], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[2], m[6], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[5], m[10], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[4], m[0], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[15], m[8], 3, 4, 9, 14);
+
+    // round 4
+    cuda_blake2b_G(ctx, m[9], m[0], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[5], m[7], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[2], m[4], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[10], m[15], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[14], m[1], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[11], m[12], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[6], m[8], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[3], m[13], 3, 4, 9, 14);
+
+    // round 5
+    cuda_blake2b_G(ctx, m[2], m[12], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[6], m[10], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[0], m[11], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[8], m[3], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[4], m[13], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[7], m[5], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[15], m[14], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[1], m[9], 3, 4, 9, 14);
+
+
+    // round 6
+    cuda_blake2b_G(ctx, m[12], m[5], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[1], m[15], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[14], m[13], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[4], m[10], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[0], m[7], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[6], m[3], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[9], m[2], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[8], m[11], 3, 4, 9, 14);
+
+    // round 7
+    cuda_blake2b_G(ctx, m[13], m[11], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[7], m[14], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[12], m[1], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[3], m[9], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[5], m[0], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[15], m[4], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[8], m[6], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[2], m[10], 3, 4, 9, 14);
+
+    // round 8
+    cuda_blake2b_G(ctx, m[6], m[15], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[14], m[9], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[11], m[3], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[0], m[8], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[12], m[2], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[13], m[7], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[1], m[4], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[10], m[5], 3, 4, 9, 14);
+
+    // round 9
+    cuda_blake2b_G(ctx, m[10], m[2], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[8], m[4], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[7], m[6], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[1], m[5], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[15], m[11], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[9], m[14], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[3], m[12], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[13], m[0], 3, 4, 9, 14);
+
+    // round 10
+    cuda_blake2b_G(ctx, m[0], m[1], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[2], m[3], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[4], m[5], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[6], m[7], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[8], m[9], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[10], m[11], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[12], m[13], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[14], m[15], 3, 4, 9, 14);
+
+    // round 11
+    cuda_blake2b_G(ctx, m[14], m[10], 0, 4, 8, 12);
+    cuda_blake2b_G(ctx, m[4], m[8], 1, 5, 9, 13);
+    cuda_blake2b_G(ctx, m[9], m[15], 2, 6, 10, 14);
+    cuda_blake2b_G(ctx, m[13], m[6], 3, 7, 11, 15);
+    cuda_blake2b_G(ctx, m[1], m[12], 0, 5, 10, 15);
+    cuda_blake2b_G(ctx, m[0], m[2], 1, 6, 11, 12);
+    cuda_blake2b_G(ctx, m[11], m[7], 2, 7, 8, 13);
+    cuda_blake2b_G(ctx, m[5], m[3], 3, 4, 9, 14);
 
     for (int offset = 0; offset < BLAKE2B_CHAIN_SIZE; offset++)
         ctx->chain[offset] = ctx->chain[offset] ^ ctx->state[offset] ^ ctx->state[offset + 8];
@@ -137,14 +255,16 @@ __device__ void cuda_blake2b_init(cuda_blake2b_ctx_t *ctx, WORD digestbitlen)
     ctx->t0 = 0;
     ctx->t1 = 0;
     ctx->f0 = 0;
-    ctx->chain[0] = BLAKE2B_IVS[0] ^ (ctx->digestlen | 0x1010000);
-    ctx->chain[1] = BLAKE2B_IVS[1];
-    ctx->chain[2] = BLAKE2B_IVS[2];
-    ctx->chain[3] = BLAKE2B_IVS[3];
-    ctx->chain[4] = BLAKE2B_IVS[4];
-    ctx->chain[5] = BLAKE2B_IVS[5];
-    ctx->chain[6] = BLAKE2B_IVS[6];
-    ctx->chain[7] = BLAKE2B_IVS[7];
+
+    // Inline the blake2b initialization vectors 0-7
+    ctx->chain[0] = 0x6a09e667f3bcc908 ^ (ctx->digestlen | 0x1010000);
+    ctx->chain[1] = 0xbb67ae8584caa73b;
+    ctx->chain[2] = 0x3c6ef372fe94f82b;
+    ctx->chain[3] = 0xa54ff53a5f1d36f1;
+    ctx->chain[4] = 0x510e527fade682d1;
+    ctx->chain[5] = 0x9b05688c2b3e6c1f;
+    ctx->chain[6] = 0x1f83d9abfb41bd6b;
+    ctx->chain[7] = 0x5be0cd19137e2179;
 }
 
 __device__ void cuda_blake2b_update(cuda_blake2b_ctx_t *ctx, BYTE* in, LONG inlen)
