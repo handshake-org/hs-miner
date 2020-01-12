@@ -42,7 +42,8 @@ try {
   range = config.uint(['range', 'r'], 10000);
   grids = config.uint(['grids', 'm'], 52428);
   blocks = config.uint(['blocks', 'n'], 512);
-  threads = config.uint(['threads', 'x'], 26843136);
+  threads = config.uint(['threads', 'x'],
+    backend === 'simple' ? Miner.getCPUCount() : 26843136);
   device = config.uint(['device', 'd'], -1);
   ssl = config.str(['rpc-ssl', 'l'], false);
   host = config.str(['rpc-host', 'i'], 'localhost');
