@@ -60,7 +60,7 @@ void
 
   for (; nonce < max; nonce++) {
     if (!options->running)
-      break;
+      return (void *)HS_EABORT;
 
     // Insert nonce into share
     memcpy(share, &nonce, 4);
@@ -71,6 +71,9 @@ void
     //   thread, nonce, hash[0], hash[1], hash[2], hash[3]);
 
     if (memcmp(hash, target, 32) <= 0) {
+      // WINNER!
+      options->running = false;
+
       *match = true;
       *result = nonce;
       return (void *)HS_SUCCESS;
