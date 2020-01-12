@@ -29,7 +29,7 @@ describe('Miner', function() {
       range: 10000,
       grids: 1000,
       blocks: 10,
-      threads: 10000
+      threads: backend === 'simple' ? Miner.getCPUCount() : 10000
     });
 
     describe(`Backend: ${backend}`, function() {
