@@ -31,7 +31,7 @@
 #define HS_EORPHAN 26
 
 // Cancelled by parrallel CPU thread
-#define HS_EABORT 0
+#define HS_EABORT 27
 
 // Max
 #define HS_MAXERROR 32

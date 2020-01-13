@@ -83,6 +83,10 @@ void
   return (void *)HS_ENOSOLUTION;
 }
 
+// Return code for hs_simple_thread() threads must be in scope
+// even after hs_simple_run returns or it'll segfault.
+int32_t rc;
+
 int32_t
 hs_simple_run(
   hs_options_t *options,
@@ -112,11 +116,13 @@ hs_simple_run(
     }
   }
 
+  int32_t final_rc = HS_MAXERROR;
   for(uint8_t i = 0; i < NUM_THREADS; i++) {
-    int32_t *rc;
     pthread_join(threads[i], (void **)&rc);
-    if (rc != 0)
-      printf("Thread %u returned error code: %zu\n", i, rc);
+    if (rc < final_rc)
+      final_rc = 0;
+    // if (rc != 0)
+    //   printf("Thread %u returned error code: %u\n", i, rc);
   }
-  return HS_SUCCESS;
+  return final_rc;
 }
