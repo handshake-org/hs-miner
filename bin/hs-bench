@@ -111,8 +111,7 @@ console.log(info);
 
     mining(backend === 'simple' ? range : threads);
   }
-
-})().catch(err => {
+})().catch((err) => {
   console.log(err);
   process.exit(1);
 });
