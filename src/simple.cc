@@ -67,9 +67,6 @@ void
 
     hs_header_share_pow(share, pad32, hash);
 
-    // printf("Thread: %u Nonce: %zu Hash: %02x%02x%02x%02x\n",
-    //   thread, nonce, hash[0], hash[1], hash[2], hash[3]);
-
     if (memcmp(hash, target, 32) <= 0) {
       // WINNER!
       options->running = false;
@@ -111,7 +108,6 @@ hs_simple_run(
     int err =
       pthread_create(&threads[i], NULL, hs_simple_thread, thread_args[i]);
     if (err != 0) {
-      printf("Error creating thread: %u\n", err);
       exit(err);
     }
   }
@@ -121,8 +117,6 @@ hs_simple_run(
     pthread_join(threads[i], (void **)&rc);
     if (rc < final_rc)
       final_rc = 0;
-    // if (rc != 0)
-    //   printf("Thread %u returned error code: %u\n", i, rc);
   }
   return final_rc;
 }
