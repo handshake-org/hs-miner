@@ -24,7 +24,7 @@ class Miner {
     this.height = 0;
     this.mining = false;
     this.offset = 0;
-    this.root = Buffer.alloc(32, 0x00).toString('hex');
+    this.maskHash = Buffer.alloc(32, 0x00);
 
     if (miner.HAS_CUDA)
       this.count = miner.getDeviceCount();
@@ -83,7 +83,7 @@ class Miner {
   }
 
   async repoll() {
-    const result = await this.getWork(this.root);
+    const result = await this.getWork();
 
     if (!result)
       return;
@@ -93,8 +93,12 @@ class Miner {
       target,
       height,
       time,
-      root
+      maskHash
     } = result;
+
+    // Not new work.
+    if (maskHash.equals(this.maskHash))
+      return;
 
     const now = Math.floor(Date.now() / 1000);
     const offset = time - now;
@@ -107,7 +111,7 @@ class Miner {
     this.hdr = hdr;
     this.target = target;
     this.height = height;
-    this.root = root;
+    this.maskHash = maskHash;
 
     miner.stopAll();
 
@@ -121,8 +125,8 @@ class Miner {
     }
   }
 
-  async getWork(root) {
-    const res = await this.execute('getwork', [root]);
+  async getWork() {
+    const res = await this.execute('getwork', [this.maskHash.toString('hex')]);
 
     if (!res)
       return null;
@@ -161,14 +165,14 @@ class Miner {
     if ((time >>> 0) !== time)
       throw new Error('Bad time.');
 
-    const {merkleRoot} = readHeader(hdr);
+    const {maskHash} = readHeader(hdr);
 
     return {
       hdr,
       target,
       height,
       time,
-      root: merkleRoot
+      maskHash
     };
   }
 
@@ -233,7 +237,7 @@ class Miner {
   }
 
   getJob() {
-    return [this.hdr, this.target, this.height, this.root];
+    return [this.hdr, this.target, this.height, this.maskHash];
   }
 
   async work() {
@@ -255,7 +259,7 @@ class Miner {
 
       // Handle overflow
       i = i++ % 1000;
-      const [hdr, target, height, root] = this.getJob();
+      const [hdr, target, height, maskHash] = this.getJob();
 
       increment(hdr, this.now());
 
@@ -274,7 +278,7 @@ class Miner {
       if (!valid)
         continue;
 
-      if (root !== this.root) {
+      if (!maskHash.equals(this.maskHash)) {
         this.log('New job. Switching.');
         continue;
       }
@@ -296,7 +300,7 @@ class Miner {
         this.log('Reason: %s', reason);
       }
 
-      if (root !== this.root) {
+      if (!maskHash.equals(this.maskHash)) {
         this.log('New job. Switching.');
         continue;
       }
@@ -426,6 +430,23 @@ function readHeader(hdr) {
   return {
     nonce: hdr.readUInt32LE(0),
     time: readTime(hdr, 4),
+    padding: hdr.slice(12, 32),
+    prevBlock: hdr.slice(32, 64),
+    treeRoot: hdr.slice(64, 96),
+    maskHash: hdr.slice(96, 128),
+    extraNonce: hdr.slice(128, 152),
+    reservedRoot: hdr.slice(152, 184),
+    witnessRoot: hdr.slice(184, 216),
+    merkleRoot: hdr.slice(216, 248),
+    version: hdr.readUInt32LE(248),
+    bits: hdr.readUInt32LE(252)
+  };
+}
+
+function readJSON(hdr) {
+  const json = {
+    nonce: hdr.readUInt32LE(0),
+    time: readTime(hdr, 4),
     padding: hdr.toString('hex', 12, 32),
     prevBlock: hdr.toString('hex', 32, 64),
     treeRoot: hdr.toString('hex', 64, 96),
@@ -437,10 +458,7 @@ function readHeader(hdr) {
     version: hdr.readUInt32LE(248),
     bits: hdr.readUInt32LE(252)
   };
-}
-
-function readJSON(hdr) {
-  return JSON.stringify(readHeader(hdr), null, 2);
+  return JSON.stringify(json, null, 2);
 }
 
 function getPort() {
