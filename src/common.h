@@ -10,13 +10,12 @@
 #include "sha3.h"
 #include "blake2b.h"
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef HEADER_SIZE
 #define HEADER_SIZE 256
-#endif
+#define EXTRA_NONCE_SIZE 24
 
 #ifndef HS_NETWORK
 #define HS_NETWORK main
@@ -43,6 +42,7 @@ typedef struct hs_options_s {
 typedef int32_t (*hs_miner_func)(
   hs_options_t *options,
   uint32_t *result,
+  uint8_t *extra_nonce,
   bool *match
 );
 
@@ -57,6 +57,7 @@ int32_t
 hs_simple_run(
   hs_options_t *options,
   uint32_t *result,
+  uint8_t *extra_nonce,
   bool *match
 );
 
@@ -71,6 +72,7 @@ int32_t
 hs_cuda_run(
   hs_options_t *options,
   uint32_t *result,
+  uint8_t *extra_nonce,
   bool *match
 );
 #endif
@@ -96,7 +98,7 @@ hs_verify(
   uint8_t *target
 );
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 

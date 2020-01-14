@@ -88,6 +88,7 @@ int32_t
 hs_simple_run(
   hs_options_t *options,
   uint32_t *result,
+  uint8_t *extra_nonce,
   bool *match
 ) {
   uint8_t NUM_THREADS = options->threads;

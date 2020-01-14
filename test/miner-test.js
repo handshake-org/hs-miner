@@ -35,14 +35,15 @@ describe('Miner', function() {
     describe(`Backend: ${backend}`, function() {
       it('should mine a valid block', async () => {
         let nonce = 0, valid = false;
+        let extraNonce = Buffer.alloc(Miner.EXTRA_NONCE_SIZE);
 
         while (!valid) {
-          [nonce, valid] = await miner.mine(header, target);
+          [nonce, extraNonce, valid] = await miner.mine(header, target);
         }
 
         assert(valid);
 
-        const hdr = miner.toBlock(header, nonce);
+        const hdr = miner.toBlock(header, nonce, extraNonce);
 
         // The hash matches the mock Proof of Work algorithm.
         const hash = miner.hashHeader(hdr);

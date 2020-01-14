@@ -90,7 +90,8 @@ if (miner.hasCUDA()) {
 - `miner.BACKEND` - Default backend.
 - `miner.TARGET` - Default target.
 - `miner.HDR_SIZE` - Handshake to-be-solved header size (256).
-- `miner.EXTRA_NONCE_START` - Start of nonce position (128).
+- `miner.EXTRA_NONCE_SIZE` - Total size of extra nonce (24).
+- `miner.EXTRA_NONCE_START` - Start of extra nonce position (128).
 - `miner.EXTRA_NONCE_END` - End of extra nonce position (152).
 
 ## Options

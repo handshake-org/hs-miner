@@ -44,6 +44,7 @@ private:
   hs_miner_func mine_func;
   int32_t rc;
   uint32_t nonce;
+  uint8_t extra_nonce[EXTRA_NONCE_SIZE];
   bool match;
 };
 
@@ -56,6 +57,7 @@ MinerWorker::MinerWorker (
   , mine_func(mine_func)
   , rc(0)
   , nonce(0)
+  , extra_nonce()
   , match(false)
 {
   Nan::HandleScope scope;
@@ -83,7 +85,11 @@ MinerWorker::Execute() {
 
   m.unlock();
 
-  rc = mine_func(options, &nonce, &match);
+  // Copy the extra nonce out of the header so that it can
+  // be freely searched by the miner_func.
+  memcpy(extra_nonce, options->header + 128, EXTRA_NONCE_SIZE);
+
+  rc = mine_func(options, &nonce, extra_nonce, &match);
 
   m.lock();
 
@@ -151,20 +157,21 @@ MinerWorker::HandleOKCallback() {
   if (rc == HS_ENOSOLUTION) {
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
     Nan::Set(ret, 0, Nan::New<v8::Uint32>(0));
-    Nan::Set(ret, 1, Nan::New<v8::Boolean>(false));
+    Nan::Set(ret, 1, Nan::CopyBuffer((char *)extra_nonce, EXTRA_NONCE_SIZE).ToLocalChecked());
+    Nan::Set(ret, 2, Nan::New<v8::Boolean>(false));
     v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
-    callback->Call(2, argv, async_resource);
+    callback->Call(3, argv, async_resource);
     return;
   }
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
   Nan::Set(ret, 0, Nan::New<v8::Uint32>(nonce));
-  Nan::Set(ret, 1, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 1, Nan::CopyBuffer((char *)extra_nonce, EXTRA_NONCE_SIZE).ToLocalChecked());
+  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
 
   v8::Local<v8::Value> argv[] = { Nan::Null(), ret };
-
-  callback->Call(2, argv, async_resource);
+  callback->Call(3, argv, async_resource);
 }
 
 static hs_miner_func
@@ -270,7 +277,12 @@ NAN_METHOD(mine) {
 
   bool match;
 
-  int32_t rc = mine_func(&options, &nonce, &match);
+  // Allow miner_func to update the extra nonce, use the
+  // default value in the header as the initial value.
+  uint8_t extra_nonce[EXTRA_NONCE_SIZE];
+  memcpy(extra_nonce, hdr + 128, EXTRA_NONCE_SIZE);
+
+  int32_t rc = mine_func(&options, &nonce, extra_nonce, &match);
 
   switch (rc) {
     case HS_SUCCESS: {
@@ -303,8 +315,8 @@ NAN_METHOD(mine) {
     }
     case HS_ENOSOLUTION: {
       v8::Local<v8::Array> ret = Nan::New<v8::Array>();
-      Nan::Set(ret, 0, Nan::Null());
-      Nan::Set(ret, 1, Nan::New<v8::Uint32>(0));
+      Nan::Set(ret, 0, Nan::New<v8::Uint32>(0));
+      Nan::Set(ret, 1, Nan::CopyBuffer((char *)extra_nonce, EXTRA_NONCE_SIZE).ToLocalChecked());
       Nan::Set(ret, 2, Nan::New<v8::Boolean>(false));
       return info.GetReturnValue().Set(ret);
     }
@@ -321,7 +333,8 @@ NAN_METHOD(mine) {
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
   Nan::Set(ret, 0, Nan::New<v8::Uint32>(nonce));
-  Nan::Set(ret, 1, Nan::New<v8::Boolean>(match));
+  Nan::Set(ret, 1, Nan::CopyBuffer((char *)extra_nonce, EXTRA_NONCE_SIZE).ToLocalChecked());
+  Nan::Set(ret, 2, Nan::New<v8::Boolean>(match));
 
   info.GetReturnValue().Set(ret);
 }

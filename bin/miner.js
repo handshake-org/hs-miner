@@ -2,7 +2,10 @@
 
 const assert = require('assert');
 const request = require('brq');
+const crypto = require('crypto');
 const miner = require('../');
+
+const EXTRA_NONCE = Buffer.alloc(miner.EXTRA_NONCE_SIZE);
 
 class Miner {
   constructor(options) {
@@ -158,7 +161,7 @@ class Miner {
       throw new Error('Non-object sent as getwork response.');
 
     if (res.network !== miner.NETWORK) {
-      console.error('Wrong network: %s.', res.network);
+      this.error('Wrong network: %s.', res.network);
       process.exit(1);
     }
 
@@ -217,11 +220,28 @@ class Miner {
     return res;
   }
 
-  toBlock(hdr, nonce) {
+  toBlock(hdr, nonce, extraNonce) {
     assert(hdr.length === miner.HDR_SIZE);
     hdr.writeUInt32LE(nonce, 0, 4);
+    hdr.copy(extraNonce, miner.EXTRA_NONCE_START, miner.EXTRA_NONCE_END);
     return hdr;
   }
+
+  /**
+   * Create a mining job. The backend can choose
+   * a strategy in searching through the nonce/extra
+   * nonce space. Different backends may use different
+   * arguments. Returns the nonce, extra nonce and a
+   * bool that indicates if the job found a proof.
+   *
+   * `simple` uses nonce and range
+   * `cuda` uses grids, blocks and threads
+   *
+   * @param {Number} index  - device index
+   * @param {Buffer} hdr    - raw header
+   * @param {Buffer} target - target (bytes)
+   * @returns {Promise} [Number, Buffer, Boolean]
+   */
 
   job(index, hdr, target) {
     return miner.mineAsync(hdr, {
@@ -239,24 +259,28 @@ class Miner {
   async mine(hdr, target) {
     const jobs = [];
 
+    // Use a single device if specified, otherwise use
+    // all of the devices.
     if (this.device !== -1) {
       this.log('Using device: %d', this.device);
       jobs.push(this.job(this.device, hdr, target));
     } else {
-      for (let i = 0; i < this.count; i++)
+      for (let i = 0; i < this.count; i++) {
+        randomize(hdr, miner.EXTRA_NONCE_END - 12, miner.EXTRA_NONCE_END);
         jobs.push(this.job(i, hdr, target));
+      }
     }
 
     const result = await Promise.all(jobs);
 
     for (let i = 0; i < result.length; i++) {
-      const [nonce, match] = result[i];
+      const [nonce, extraNonce, match] = result[i];
 
       if (match)
-        return [nonce, true];
+        return [nonce, extraNonce, true];
     }
 
-    return [0, false];
+    return [0, EXTRA_NONCE, false];
   }
 
   getJob() {
@@ -272,8 +296,7 @@ class Miner {
   }
 
   async _work() {
-    let nonce;
-    let valid;
+    let nonce, extraNonce, valid;
     let i = 0;
 
     for (;;) {
@@ -292,7 +315,7 @@ class Miner {
       }
 
       try {
-        [nonce, valid] = await this.mine(hdr, target);
+        [nonce, extraNonce, valid] = await this.mine(hdr, target);
       } catch (e) {
         this.error(e.stack);
         continue;
@@ -306,9 +329,10 @@ class Miner {
         continue;
       }
 
-      this.log('Found valid nonce: %d', nonce);
+      this.log('Found valid nonce: %d, extra nonce %s',
+        nonce, extraNonce.toString('hex'));
 
-      const raw = this.toBlock(hdr, nonce);
+      const raw = this.toBlock(hdr, nonce, extraNonce);
 
       let reason = '';
 
@@ -421,7 +445,7 @@ function increment(hdr, now) {
   // add randomness to part of the extra nonce
   // so that this software can run in parallel and
   // search different nonce spaces.
-  for (let i = miner.EXTRANONCE_START; i < miner.EXTRANONCE_END; i++) {
+  for (let i = miner.EXTRA_NONCE_START; i < miner.EXTRA_NONCE_END; i++) {
     if (hdr[i] !== 0xff) {
       hdr[i] += 1;
       break;
@@ -451,6 +475,11 @@ function writeTime(hdr, time, off) {
   hdr.writeUInt32LE(lo, off);
   hdr.writeUInt16LE(hi, off + 4);
   hdr.writeUInt16LE(0, off + 6);
+}
+
+function randomize(hdr, start, end) {
+  const random = crypto.randomBytes(end - start);
+  random.copy(hdr, start);
 }
 
 function readHeader(hdr) {
@@ -507,6 +536,7 @@ function getPort() {
  * Expose
  */
 
+Miner.EXTRA_NONCE_SIZE = miner.EXTRA_NONCE_SIZE;
 Miner.readHeader = readHeader;
 Miner.readJSON = readJSON;
 module.exports = Miner;
