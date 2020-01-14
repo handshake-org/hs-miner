@@ -370,6 +370,10 @@ class Miner {
   static getBackends() {
     return miner.getBackends();
   }
+
+  static getCPUCount() {
+    return miner.getCPUCount();
+  }
 }
 
 /*

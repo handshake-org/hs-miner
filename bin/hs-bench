@@ -36,9 +36,12 @@ try {
   iterations = config.uint(['iterations', 'i'], 10);
   backend = config.str(['backend', 'b'], miner.BACKEND);
   range = config.uint(['range', 'r'], 10000);
-  grids = config.uint(['grids', 'm'], 52428);
-  blocks = config.uint(['blocks', 'n'], 512);
-  threads = config.uint(['threads', 'x'], 26843136);
+  grids = config.uint(['grids', 'm'],
+    backend === 'simple' ? 0 : 52428);
+  blocks = config.uint(['blocks', 'n'],
+    backend === 'simple' ? 0 : 512);
+  threads = config.uint(['threads', 'x'],
+    backend === 'simple' ? miner.getCPUCount() : 26843136);
   device = config.uint(['device', 'd'], -1);
   version = config.bool(['version', 'v'], false);
   help = config.bool(['help', 'h', '?'], false);
@@ -106,10 +109,9 @@ console.log(info);
       device: device === -1 ? null : device
     });
 
-    mining(threads);
+    mining(backend === 'simple' ? range : threads);
   }
-
-})().catch(err => {
+})().catch((err) => {
   console.log(err);
   process.exit(1);
 });
