@@ -124,8 +124,19 @@ When using one of the CUDA backends, only one job per device is allowed at a
 time. This is done because the CUDA miners generally wipe out your GPU's memory
 anyway.
 
-The `grids`, `blocks` and `threads` parameters are backend-specific. You may have to dig into each to
-figure out what reasonable values are and how they work.
+The `grids`, `blocks` and `threads` parameters are backend-specific:
+
+## CUDA:
+
+- grids: number of blocks per grid (default: 52428)
+- blocks: number of threads per block (default: 512)
+- threads: total number of threads (for maximum occupancy: threads = grids * blocks) (default: 26843136)
+
+## OpenCL:
+
+- grids: n/a
+- blocks: work group size (default: 512)
+- threads: work items (default: 26843136)
 
 For CUDA support, CUDA must be installed in either `/opt/cuda` or
 `/usr/local/cuda` when running the build scripts.
