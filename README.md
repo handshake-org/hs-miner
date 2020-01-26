@@ -1,6 +1,6 @@
 # hs-miner
 
-CUDA-capable POW miner for Handshake.
+CUDA and OpenCL capable POW miner for Handshake.
 
 ## Usage
 
@@ -34,15 +34,6 @@ if (miner.hasCUDA())
 console.log('CUDA devices:');
 console.log(miner.getDevices());
 
-// FIXME: review
-// This mutates the last 4 bytes of the
-// buffer to increment a 32 bit nonce.
-// The header size _must_ be a multiple
-// of 4. This means the last 4 bytes of
-// a handshake header's 20 byte nonce
-// are used as the "regular nonce",
-// whereas the first 16 bytes are the
-// "extra nonces".
 const [nonce, match] = await miner.mineAsync(hdr, {
   backend: 'cuda',
   nonce: 0,
@@ -71,17 +62,16 @@ console.log('Match: %s', match);
 - `miner.verify(hdr, sol, target?)` - Verify a to-be-solved header (sync).
 - `miner.blake2b(data, enc)` - Hash a piece of data with blake2b.
 - `miner.sha3(data, enc)` - Hash a piece of data with sha3.
-- `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
+- `miner.hashHeader(data)` - Hash miner serialized header.
 - `miner.getNetwork()` - Get network (compile time flag).
 - `miner.getBackends()` - Get available backends.
-- `miner.hasBackend(name)` - Test whether a backend is supported.
 - `miner.hasCUDA()` - Test whether CUDA support was built.
-- `miner.hasDevice()` - Test whether a CUDA device is available.
-- `miner.getDeviceCount()` - Get count of CUDA devices.
-- `miner.getDevices()` - Get CUDA devices. Returns an array of objects.
-- `miner.getCPUCount()` - Get count of CPUs.
-- `miner.getCPUs()` - Get CPUs. Returns an array of objects.
-- `miner.getBackend()` - Get suggested backend based on the machine's hardware.
+- `miner.hasOpenCL()` - Test whether OpenCL support was built.
+- `miner.hasDevice()` - Test whether a device is available.
+- `miner.getCUDADeviceCount()` - Get count of CUDA devices.
+- `miner.getOpenCLDeviceCount()` - Get count of OpenCL devices.
+- `miner.getCUDADevices()` - Get CUDA devices. Returns an array of objects.
+- `miner.getOpenCLDevices()` - Get OpenCL devices. Returns an array of objects.
 
 ## Utilities
 
@@ -99,9 +89,8 @@ console.log('Match: %s', match);
 - `miner.BACKEND` - Default backend.
 - `miner.TARGET` - Default target.
 - `miner.HDR_SIZE` - Handshake to-be-solved header size (256).
-- `miner.EXTRANONCE_SIZE` - Total size of nonce (24).
-- `miner.EXTRANONCE_START` - Start of nonce position (128).
-- `miner.EXTRANONCE_END` - End of extra nonce position (152).
+- `miner.EXTRA_NONCE_START` - Start of nonce position (128).
+- `miner.EXTRA_NONCE_END` - End of extra nonce position (152).
 
 ## Options
 
@@ -117,7 +106,8 @@ console.log('Match: %s', match);
 
 ## Backends (so far)
 
-- cuda - POW miner with CUDA (`cuda.cu`).
+- CUDA - POW miner with CUDA (`cuda.cu`).
+- OpenCL - POW miner with OpenCL (`pow-ng.cl`).
 - CPU - Simple miner, mostly for testing (`simple.cc`).
 
 ## Platform Support

@@ -17,7 +17,8 @@ class Miner {
     this.port = options.port || getPort();
     this.user = options.user || 'hnsrpc';
     this.pass = options.pass || '';
-    this.count = 1;
+    this.type = miner.getBackendDevice(this.backend);
+    this.count = miner.getDeviceCount(this.type);
     this.sequence = 0;
     this.hdr = Buffer.alloc(miner.HDR_SIZE, 0x00);
     this.target = options.target || Buffer.alloc(32, 0xff);
@@ -25,9 +26,6 @@ class Miner {
     this.mining = false;
     this.offset = 0;
     this.maskHash = Buffer.alloc(32, 0x00);
-
-    if (miner.HAS_CUDA)
-      this.count = miner.getDeviceCount();
   }
 
   log(...args) {
@@ -43,19 +41,43 @@ class Miner {
       throw new Error(`Backend ${this.backend} not supported!`);
 
     this.log('Miner params:');
-    this.log('  Backend: %s', this.backend);
-    this.log('  CUDA: %s', miner.HAS_CUDA);
     this.log('  Network: %s', miner.NETWORK);
+    this.log('  Device Type: %s', this.type);
+    this.log('  Backend: %s', this.backend);
+
+    const deviceids = [];
+    for (let i = 0; i < this.count; i++)
+      deviceids.push(i);
+    this.log('  Using devices: ' + deviceids.join(','));
+
+    const types = [];
+    if (miner.getCPUCount() > 0)
+      types.push('cpu');
+    if (miner.HAS_CUDA)
+      types.push('cuda');
+    if (miner.HAS_OPENCL)
+      types.push('opencl');
+
+    this.log('  Supported Device Types: %s', types.join(','));
     this.log('');
 
     if (miner.HAS_CUDA) {
-      this.log('CUDA Devices:');
-      for (const {id, name, memory, bits, clock} of miner.getDevices())
-        this.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
-    } else {
-      this.log('CPUs:');
+      console.log('CUDA Devices:');
+      for (const {id, name, memory, bits, clock} of miner.getDevices('cuda'))
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+    }
+
+    if (miner.HAS_OPENCL) {
+      console.log('OpenCL Devices:');
+      for (const {id, name, memory, bits, clock} of miner.getDevices('opencl'))
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+    }
+
+    // We don't care about the CPUs if CUDA or OpenCL are installed.
+    if (this.type === 'cpu') {
+      console.log('CPUs:');
       for (const {id, name, memory, bits, clock} of miner.getCPUs())
-        this.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
     }
 
     this.log('');
@@ -296,7 +318,7 @@ class Miner {
       }
 
       if (!valid) {
-        this.log('Invalid block submitted: %s.', miner.blake2b(raw, 'hex'));
+        this.log('Invalid block submitted: %s.', miner.hashHeader(raw, 'hex'));
         this.log('Reason: %s', reason);
       }
 

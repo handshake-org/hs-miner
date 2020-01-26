@@ -46,14 +46,12 @@ typedef int32_t (*hs_miner_func)(
   bool *match
 );
 
-#ifdef HS_HAS_CUDA
 typedef struct hs_device_info_s {
   char name[513];
   uint64_t memory;
   uint32_t bits;
   uint32_t clock_rate;
 } hs_device_info_t;
-#endif
 
 int32_t
 hs_simple_run(
@@ -64,13 +62,28 @@ hs_simple_run(
 
 #ifdef HS_HAS_CUDA
 uint32_t
-hs_device_count(void);
+hs_cuda_device_count(void);
 
 bool
-hs_device_info(uint32_t device, hs_device_info_t *info);
+hs_cuda_device_info(uint32_t device, hs_device_info_t *info);
 
 int32_t
 hs_cuda_run(
+  hs_options_t *options,
+  uint32_t *result,
+  bool *match
+);
+#endif
+
+#ifdef HS_HAS_OPENCL
+uint32_t
+hs_opencl_device_count();
+
+bool
+hs_opencl_device_info(uint32_t device, hs_device_info_t *info);
+
+int32_t
+hs_opencl_run(
   hs_options_t *options,
   uint32_t *result,
   bool *match

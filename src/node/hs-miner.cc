@@ -26,7 +26,6 @@ typedef std::unordered_map<uint32_t, hs_options_t *> job_map_t;
 
 static std::mutex m;
 static job_map_t job_map;
-static uint16_t job_counter = 0;
 
 class MinerWorker : public Nan::AsyncWorker {
 public:
@@ -178,6 +177,12 @@ get_miner_func(const char *backend, bool *is_cuda) {
     if (is_cuda)
       *is_cuda = true;
     return hs_cuda_run;
+  }
+#endif
+
+#ifdef HS_HAS_OPENCL
+  if (strcmp(backend, "opencl") == 0) {
+    return hs_opencl_run;
   }
 #endif
 
@@ -406,12 +411,6 @@ NAN_METHOD(mine_async) {
   options->is_cuda = is_cuda;
   options->running = true;
 
-  if (!is_cuda) {
-    options->device = job_counter;
-    options->device |= 1 << 31;
-    job_counter += 1;
-  }
-
   MinerWorker *worker = new MinerWorker(
     options,
     mine_func,
@@ -627,6 +626,10 @@ NAN_METHOD(get_backends) {
   Nan::Set(ret, i++, Nan::New<v8::String>("cuda").ToLocalChecked());
 #endif
 
+#ifdef HS_HAS_OPENCL
+  Nan::Set(ret, i++, Nan::New<v8::String>("opencl").ToLocalChecked());
+#endif
+
   info.GetReturnValue().Set(ret);
 }
 
@@ -641,49 +644,103 @@ NAN_METHOD(has_cuda) {
 #endif
 }
 
-NAN_METHOD(has_device) {
+NAN_METHOD(has_opencl) {
   if (info.Length() != 0)
-    return Nan::ThrowError("has_device() requires no arguments.");
+    return Nan::ThrowError("has_opencl() requires no arguments.");
 
-#ifdef HS_HAS_CUDA
-  info.GetReturnValue().Set(Nan::New<v8::Boolean>(hs_device_count()));
+#ifdef HS_HAS_OPENCL
+  info.GetReturnValue().Set(Nan::New<v8::Boolean>(true));
 #else
   info.GetReturnValue().Set(Nan::New<v8::Boolean>(false));
 #endif
 }
 
-NAN_METHOD(get_device_count) {
+NAN_METHOD(has_device) {
   if (info.Length() != 0)
-    return Nan::ThrowError("get_device_count() requires no arguments.");
+    return Nan::ThrowError("has_device() requires no arguments.");
 
 #ifdef HS_HAS_CUDA
-  info.GetReturnValue().Set(Nan::New<v8::Uint32>(hs_device_count()));
+  info.GetReturnValue().Set(Nan::New<v8::Boolean>(hs_cuda_device_count()));
+#else
+  info.GetReturnValue().Set(Nan::New<v8::Boolean>(false));
+#endif
+}
+
+NAN_METHOD(get_cuda_device_count) {
+  if (info.Length() != 0)
+    return Nan::ThrowError("get_cuda_device_count() requires no arguments.");
+
+#ifdef HS_HAS_CUDA
+  info.GetReturnValue().Set(Nan::New<v8::Uint32>(hs_cuda_device_count()));
 #else
   info.GetReturnValue().Set(Nan::New<v8::Uint32>(0));
 #endif
 }
 
-NAN_METHOD(get_devices) {
+NAN_METHOD(get_opencl_device_count) {
   if (info.Length() != 0)
-    return Nan::ThrowError("get_devices() requires no arguments.");
+    return Nan::ThrowError("get_opencl_device_count() requires no arguments.");
+
+#ifdef HS_HAS_OPENCL
+  info.GetReturnValue().Set(Nan::New<v8::Uint32>(hs_opencl_device_count()));
+#else
+  info.GetReturnValue().Set(Nan::New<v8::Uint32>(0));
+#endif
+}
+
+NAN_METHOD(get_cuda_devices) {
+  if (info.Length() != 0)
+    return Nan::ThrowError("get_cuda_devices() requires no arguments.");
 
   v8::Local<v8::Array> rets = Nan::New<v8::Array>();
 
 #ifdef HS_HAS_CUDA
-  uint32_t count = hs_device_count();
+  uint32_t cuda_count = hs_cuda_device_count();
 
-  hs_device_info_t dev;
+  hs_device_info_t cuda_dev;
 
-  for (uint32_t i = 0; i < count; i++) {
-    if (!hs_device_info(i, &dev))
+  for (uint32_t i = 0; i < cuda_count; i++) {
+    if (!hs_cuda_device_info(i, &cuda_dev))
       break;
 
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-    Nan::Set(ret, 0, Nan::New<v8::String>(dev.name).ToLocalChecked());
-    Nan::Set(ret, 1, Nan::New<v8::Number>(dev.memory));
-    Nan::Set(ret, 2, Nan::New<v8::Uint32>(dev.bits));
-    Nan::Set(ret, 3, Nan::New<v8::Uint32>(dev.clock_rate));
+    Nan::Set(ret, 0, Nan::New<v8::String>(cuda_dev.name).ToLocalChecked());
+    Nan::Set(ret, 1, Nan::New<v8::Number>(cuda_dev.memory));
+    Nan::Set(ret, 2, Nan::New<v8::Uint32>(cuda_dev.bits));
+    Nan::Set(ret, 3, Nan::New<v8::Uint32>(cuda_dev.clock_rate));
+    Nan::Set(ret, 4, Nan::New<v8::String>("cuda").ToLocalChecked());
+
+    Nan::Set(rets, i, ret);
+  }
+#endif
+
+  info.GetReturnValue().Set(rets);
+}
+
+NAN_METHOD(get_opencl_devices) {
+  if (info.Length() != 0)
+    return Nan::ThrowError("get_opencl_devices() requires no arguments.");
+
+  v8::Local<v8::Array> rets = Nan::New<v8::Array>();
+
+#ifdef HS_HAS_OPENCL
+  uint32_t ocl_count = hs_opencl_device_count();
+
+  hs_device_info_t opencl_dev;
+
+  for (uint32_t i = 0; i < ocl_count; i++) {
+    if (!hs_opencl_device_info(i, &opencl_dev)) {
+      break;
+    }
+
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    Nan::Set(ret, 0, Nan::New<v8::String>(opencl_dev.name).ToLocalChecked());
+    Nan::Set(ret, 1, Nan::New<v8::Number>(opencl_dev.memory));
+    Nan::Set(ret, 2, Nan::New<v8::Uint32>(opencl_dev.bits));
+    Nan::Set(ret, 3, Nan::New<v8::Uint32>(opencl_dev.clock_rate));
+    Nan::Set(ret, 4, Nan::New<v8::String>("opencl").ToLocalChecked());
 
     Nan::Set(rets, i, ret);
   }
@@ -705,9 +762,12 @@ NAN_MODULE_INIT(init) {
   Nan::Export(target, "getNetwork", get_network);
   Nan::Export(target, "getBackends", get_backends);
   Nan::Export(target, "hasCUDA", has_cuda);
+  Nan::Export(target, "hasOpenCL", has_opencl);
   Nan::Export(target, "hasDevice", has_device);
-  Nan::Export(target, "getDeviceCount", get_device_count);
-  Nan::Export(target, "getDevices", get_devices);
+  Nan::Export(target, "getCUDADeviceCount", get_cuda_device_count);
+  Nan::Export(target, "getOpenCLDeviceCount", get_opencl_device_count);
+  Nan::Export(target, "getCUDADevices", get_cuda_devices);
+  Nan::Export(target, "getOpenCLDevices", get_opencl_devices);
 }
 
 #if NODE_MAJOR_VERSION >= 10

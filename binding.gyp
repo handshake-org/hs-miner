@@ -3,7 +3,9 @@
     "hs_endian%": "<!(./scripts/get endian)",
     "hs_cudahas%": "<!(./scripts/get cuda_has)",
     "hs_cudalib%": "<!(./scripts/get cuda_lib)",
-    "hs_network%": "<!(./scripts/get network)"
+    "hs_network%": "<!(./scripts/get network)",
+    "hs_oclhas%": "<!(./scripts/get ocl_has)",
+    "hs_os%": "<!(./scripts/get os)"
   },
   "targets": [{
     "target_name": "hsminer",
@@ -13,6 +15,7 @@
       "./src/sha3.c",
       "./src/header.c",
       "./src/verify.cc",
+      "./src/opencl.c",
       "./src/simple.cc",
       "./src/utils.c"
     ],
@@ -62,6 +65,23 @@
           "-L<(hs_cudalib)",
           "-lcudart"
         ]
+      }],
+      ["hs_oclhas==1", {
+        "defines": [
+          "HS_HAS_OPENCL"
+        ],
+        "conditions": [
+          ["hs_os=='linux'", {
+            "libraries": [
+              "-lOpenCL"
+            ]
+          }],
+          ["hs_os=='mac'", {
+            "libraries": [
+              "-framework OpenCL"
+            ]
+          }]
+        ],
       }]
     ]
   }]

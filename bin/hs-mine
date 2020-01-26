@@ -19,6 +19,7 @@ config.load({
 let hdr;
 let target;
 let backend;
+let type;
 let nonce;
 let range;
 let grids;
@@ -96,15 +97,34 @@ if (!quiet || info) {
     console.log('Target: %s', target.toString('hex'));
   }
 
-  console.log('Backend: %s', backend);
-  console.log('CUDA: %s', miner.HAS_CUDA);
+  const types = [];
+  if (miner.getCPUCount() > 0)
+    types.push('cpu');
+  if (miner.HAS_CUDA)
+    types.push('cuda');
+  if (miner.HAS_OPENCL)
+    types.push('opencl');
+
+  type = miner.getBackendDevice(backend);
+
   console.log('Network: %s', miner.NETWORK);
+  console.log('Device Type: %s', type);
+  console.log('Backend: %s', backend);
+  console.log('');
 
   if (miner.HAS_CUDA) {
     console.log('CUDA Devices:');
-    for (const {id, name, memory, bits, clock} of miner.getDevices())
+    for (const {id, name, memory, bits, clock} of miner.getDevices('cuda'))
       console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
-  } else {
+  }
+
+  if (miner.HAS_OPENCL) {
+    console.log('OpenCL Devices:');
+    for (const {id, name, memory, bits, clock} of miner.getDevices('opencl'))
+      console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+  }
+
+  if (type === 'cpu') {
     console.log('CPUs:');
     for (const {id, name, memory, bits, clock} of miner.getCPUs())
       console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
