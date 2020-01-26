@@ -94,7 +94,7 @@ console.log(miner.getDevices());
 
 - `backend` - Name of the desired backend.
 - `range` - How many iterations before the miner stops looking.
-- `nonce` - 32 bit nonce
+- `nonce` - 32 bit nonce to start mining from.
 - `target` - Big-endian target (32 bytes).
 - `grids` - Backend-specific, see below.
 - `blocks` - Backend-specific, see below.
