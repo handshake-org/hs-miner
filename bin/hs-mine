@@ -59,7 +59,6 @@ try {
 if (version) {
   console.error(pkg.version);
   process.exit(1);
-  return;
 }
 
 if (info)
@@ -88,7 +87,6 @@ if (!hdr || help) {
   console.error('                  --bits [num]    --quiet');
   console.error('                  --info          --help');
   process.exit(1);
-  return;
 }
 
 if (!quiet || info) {
@@ -132,7 +130,6 @@ if (!quiet || info) {
 
   if (info) {
     process.exit(0);
-    return;
   }
 }
 
@@ -154,7 +151,7 @@ if (!quiet || info) {
     console.log('Match: %s', match);
   }
 
-  assert.strictEqual(miner.verify(hdr, match ? target : null), 0);
+  assert.ok(miner.verify(hdr, target));
 
   hdr.writeUInt32LE(result, 0, 4);
 

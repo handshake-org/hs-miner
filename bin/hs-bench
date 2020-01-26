@@ -54,7 +54,6 @@ try {
 if (version) {
   console.error(pkg.version);
   process.exit(1);
-  return;
 }
 
 if (help) {
@@ -69,7 +68,6 @@ if (help) {
   console.error('            --threads [threads]');
   console.error('            --device [device] --help');
   process.exit(1);
-  return;
 }
 
 function bench(name) {
