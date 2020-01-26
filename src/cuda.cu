@@ -685,27 +685,34 @@ __constant__ uint8_t _padding[32];
 __constant__ uint8_t _commit_hash[32];
 
 __device__ int cuda_memcmp(const void *s1, const void *s2, size_t n) {
-	const unsigned char *us1 = (const unsigned char *) s1;
-	const unsigned char *us2 = (const unsigned char *) s2;
-	while (n-- != 0) {
-		if (*us1 != *us2) {
-			return (*us1 < *us2) ? -1 : +1;
-		}
-		us1++;
-		us2++;
-	}
-	return 0;
+    const unsigned char *us1 = (const unsigned char *) s1;
+    const unsigned char *us2 = (const unsigned char *) s2;
+    while (n-- != 0) {
+        if (*us1 != *us2) {
+            return (*us1 < *us2) ? -1 : +1;
+        }
+        us1++;
+        us2++;
+    }
+    return 0;
 }
 
-__global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned int threads)
+__global__ void kernel_hs_hash(
+    uint32_t *out_nonce,
+    bool *out_match,
+    unsigned int start_nonce,
+    unsigned int range,
+    unsigned int threads
+)
 {
-    // Set the nonce based on the thread.
-    uint32_t nonce = blockIdx.x * blockDim.x + threadIdx.x;
+    uint32_t tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (nonce >= threads)
-    {
+    if (tid >= threads || tid >= range) {
         return;
     }
+
+    // Set the nonce based on the start_nonce and thread.
+    uint32_t nonce = start_nonce + tid;
 
     CUDA_BLAKE2B_CTX b_ctx;
     CUDA_KECCAK_CTX s_ctx;
@@ -748,9 +755,9 @@ __global__ void kernel_hs_hash(uint32_t *out_nonce, bool *out_match, unsigned in
     // hash satisfies the target. This could be
     // either the network target or the pool target.
     if (cuda_memcmp(hash, _target, 32) <= 0) {
-      *out_nonce = nonce;
-      *out_match = true;
-      return;
+        *out_nonce = nonce;
+        *out_match = true;
+        return;
     }
 }
 
@@ -831,7 +838,13 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match)
     // Pointers to the subheader and mask hash
     hs_commit_hash(options->header + 128, options->header + 96);
 
-    kernel_hs_hash<<< options->grids, options->blocks >>>(out_nonce, out_match, options->threads);
+    kernel_hs_hash<<<options->grids, options->blocks>>>(
+        out_nonce,
+        out_match,
+        options->nonce,
+        options->range,
+        options->threads
+    );
     cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
     cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
 
