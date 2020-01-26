@@ -25,7 +25,6 @@ $ hs-mine [header-hex] [target] [backend] -n [nonce] -r [range]
 ``` js
 const miner = require('hs-miner');
 
-// Header without the appended nonce;.
 const hdr = Buffer.alloc(256, 0x00);
 
 if (miner.hasCUDA())
@@ -34,20 +33,18 @@ if (miner.hasCUDA())
 console.log('CUDA devices:');
 console.log(miner.getDevices());
 
-const [nonce, match] = await miner.mineAsync(hdr, {
-  backend: 'cuda',
-  nonce: 0,
-  range: 0xffffffff,
-  target: Buffer.alloc(32, 0xff),
-  grids: 10,
-  blocks: 10,
-  threads: 100,
-  device: 0
-});
-}
+(async () => {
+  const [nonce, match] = await miner.mineAsync(hdr, {
+    backend: 'cuda',
+    target: Buffer.alloc(32, 0xff),
+    grids: 256,
+    blocks: 8,
+    threads: 2048
+  });
 
-console.log('Nonce: %d', nonce);
-console.log('Match: %s', match);
+  console.log('Nonce: %d', nonce);
+  console.log('Match: %s', match);
+})();
 ```
 
 ## API
@@ -59,10 +56,11 @@ console.log('Match: %s', match);
 - `miner.isRunning(device)` - Test whether a device is currently running.
 - `miner.stop(device)` - Stop a running job.
 - `miner.stopAll()` - Stop all running jobs.
-- `miner.verify(hdr, sol, target?)` - Verify a to-be-solved header (sync).
+- `miner.verify(hdr, target?)` - Verify a to-be-solved header (sync).
 - `miner.blake2b(data, enc)` - Hash a piece of data with blake2b.
 - `miner.sha3(data, enc)` - Hash a piece of data with sha3.
-- `miner.hashHeader(data)` - Hash miner serialized header.
+- `miner.hashHeader(data, enc)` - Hash a piece of data with pow hash.
+- `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
 - `miner.getNetwork()` - Get network (compile time flag).
 - `miner.getBackends()` - Get available backends.
 - `miner.hasCUDA()` - Test whether CUDA support was built.
@@ -95,10 +93,8 @@ console.log('Match: %s', match);
 ## Options
 
 - `backend` - Name of the desired backend.
-- `nonce` - 32 bit nonce, during mining, this will alter the last 4 bytes of
-  the header (serialized as little endian), the front 16 bytes will stay
-  unchanged.
 - `range` - How many iterations before the miner stops looking.
+- `nonce` - 32 bit nonce
 - `target` - Big-endian target (32 bytes).
 - `grids` - Backend-specific, see below.
 - `blocks` - Backend-specific, see below.
@@ -121,7 +117,6 @@ Supports 64bit only right now.
 ## Todo
 
 - Stratum support.
-- Improve speed of job stoppage.
 
 ## Notes
 
