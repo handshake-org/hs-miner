@@ -59,7 +59,7 @@ console.log(miner.getDevices());
 - `miner.verify(hdr, target?)` - Verify a to-be-solved header (sync).
 - `miner.blake2b(data, enc)` - Hash a piece of data with blake2b.
 - `miner.sha3(data, enc)` - Hash a piece of data with sha3.
-- `miner.hashHeader(data, enc)` - Hash a piece of data with pow hash.
+- `miner.hashHeader(data)` - Hash miner serialized header.
 - `miner.isCUDA(backend)` - Test whether a backend is a CUDA backend.
 - `miner.getNetwork()` - Get network (compile time flag).
 - `miner.getBackends()` - Get available backends.
