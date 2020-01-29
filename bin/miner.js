@@ -222,8 +222,8 @@ class Miner {
 
   toBlock(hdr, nonce, extraNonce) {
     assert(hdr.length === miner.HDR_SIZE);
-    hdr.writeUInt32LE(nonce, 0, 4);
-    hdr.copy(extraNonce, miner.EXTRA_NONCE_START, miner.EXTRA_NONCE_END);
+    hdr.writeUInt32LE(nonce, 0);
+    extraNonce.copy(hdr, miner.EXTRA_NONCE_START);
     return hdr;
   }
 
@@ -441,10 +441,6 @@ function increment(hdr, now) {
   }
 
   // Increment the extra nonce.
-  // TODO: increment part of the extra nonce and
-  // add randomness to part of the extra nonce
-  // so that this software can run in parallel and
-  // search different nonce spaces.
   for (let i = miner.EXTRA_NONCE_START; i < miner.EXTRA_NONCE_END; i++) {
     if (hdr[i] !== 0xff) {
       hdr[i] += 1;
