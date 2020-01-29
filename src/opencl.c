@@ -64,7 +64,12 @@ padding(
 }
 
 int32_t
-hs_opencl_run(hs_options_t *options, uint32_t *result, bool *match) {
+hs_opencl_run(
+  hs_options_t *options,
+  uint32_t *result,
+  uint8_t *extra_nonce,
+  bool *match
+) {
   cl_int err;
   cl_platform_id pid;
   cl_device_id *dids;

@@ -88,6 +88,7 @@ int32_t
 hs_opencl_run(
   hs_options_t *options,
   uint32_t *result,
+  uint8_t *extra_nonce,
   bool *match
 );
 #endif
