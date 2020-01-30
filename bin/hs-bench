@@ -36,7 +36,7 @@ try {
   iterations = config.uint(['iterations', 'i'], 10);
   backend = config.str(['backend', 'b'], miner.BACKEND);
   range = config.uint(['range', 'r'],
-    backend === 'simple' ? 1000 : 26843136);
+    backend === 'simple' ? 1000000 : 26843136);
   grids = config.uint(['grids', 'm'],
     backend === 'simple' ? 0 : 52428);
   blocks = config.uint(['blocks', 'n'],
