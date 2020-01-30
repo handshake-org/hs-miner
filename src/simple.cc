@@ -14,8 +14,8 @@ typedef struct hs_thread_args_s {
   uint8_t thread;
 } hs_thread_args_t;
 
-void
-*hs_simple_thread(void *ptr) {
+void *
+hs_simple_thread(void *ptr) {
   hs_thread_args_t *args = (hs_thread_args_t *)ptr;
   hs_options_t *options = args->options;
   uint32_t *result = args->result;
@@ -94,19 +94,17 @@ hs_simple_run(
   pthread_t threads[NUM_THREADS];
 
   // Array of args structs for each thread
-  hs_thread_args_t *thread_args[NUM_THREADS];
+  hs_thread_args_t args[NUM_THREADS];
 
   for(uint8_t i = 0; i < NUM_THREADS; i++) {
     // Create new args object in memory for each thread so we can add
     // thread IDs to it and return different nonces.
-    thread_args[i] = (hs_thread_args_t *)malloc(sizeof(hs_thread_args_t));
-    thread_args[i]->options = options;
-    thread_args[i]->result = result;
-    thread_args[i]->match = match;
-    thread_args[i]->thread = i;
+    args[i].options = options;
+    args[i].result = result;
+    args[i].match = match;
+    args[i].thread = i;
 
-    int err =
-      pthread_create(&threads[i], NULL, hs_simple_thread, thread_args[i]);
+    int err = pthread_create(&threads[i], NULL, hs_simple_thread, &args[i]);
     if (err != 0) {
       exit(err);
     }
