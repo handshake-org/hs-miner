@@ -7,6 +7,7 @@ const miner = require('../');
 class Miner {
   constructor(options) {
     this.backend = options.backend || miner.BACKEND;
+    this.nonce = options.nonce || 0;
     this.range = options.range || 0;
     this.grids = options.grids || 0;
     this.blocks = options.blocks || 0;
@@ -225,7 +226,7 @@ class Miner {
   job(index, hdr, target) {
     return miner.mineAsync(hdr, {
       backend: this.backend,
-      nonce: index * this.range,
+      nonce: this.nonce,
       range: this.range,
       target,
       grids: this.grids,

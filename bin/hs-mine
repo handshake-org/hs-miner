@@ -36,7 +36,7 @@ try {
   hdr = config.buf(['header', 'hdr', 0], null, 'hex');
   target = config.buf(['target', 't', 1], null, 'hex');
   backend = config.str(['backend', 'b', 2], miner.BACKEND);
-  nonce = config.uint(['nonce', 'n'], 0);
+  nonce = config.uint(['nonce'], 0);
   range = config.uint(['range', 'r'], 0xffffffff);
   grids = config.uint(['grids', 'm'], 52428);
   blocks = config.uint(['blocks', 'n'], 512);
@@ -79,10 +79,10 @@ if (!hdr || help) {
   console.error(
     '  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
   console.error('');
-  console.error('Usage: $ hs-mine [header]    [target]   [backend]');
+  console.error('Usage: $ hs-mine [header] [target] [backend]');
   console.error('                  --target [hex]  --backend [name]');
   console.error('                  --nonce [num]   --range [num]');
-  console.error('                  --grids [grids], --blocks [blocks]');
+  console.error('                  --grids [grids] --blocks [blocks]');
   console.error('                  --threads [threads]');
   console.error('                  --bits [num]    --quiet');
   console.error('                  --info          --help');

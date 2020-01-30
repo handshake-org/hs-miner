@@ -24,6 +24,7 @@ config.load({
 config.open('miner.conf');
 
 let backend;
+let nonce;
 let range;
 let grids;
 let blocks;
@@ -39,6 +40,7 @@ let help;
 
 try {
   backend = config.str(['backend', 'b'], lib.BACKEND);
+  nonce = config.uint(['nonce'], 0);
   range = config.uint(['range', 'r'], 0xffffffff);
   grids = config.uint(['grids', 'm'], 52428);
   blocks = config.uint(['blocks', 'n'], 512);
@@ -81,6 +83,7 @@ if (help) {
 
 const miner = new Miner({
   backend,
+  nonce,
   range,
   grids,
   blocks,

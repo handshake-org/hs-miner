@@ -23,6 +23,7 @@ config.load({
 config.open('miner.conf');
 
 let iterations;
+let nonce;
 let backend;
 let range;
 let grids;
@@ -35,6 +36,7 @@ let help;
 try {
   iterations = config.uint(['iterations', 'i'], 10);
   backend = config.str(['backend', 'b'], miner.BACKEND);
+  nonce = config.uint(['nonce'], 0);
   range = config.uint(['range', 'r'],
     backend === 'simple' ? 1000000 : 26843136);
   grids = config.uint(['grids', 'm'],
@@ -64,10 +66,10 @@ if (help) {
   console.error('');
   console.error('Usage:');
   console.error('$ hs-bench');
-  console.error('            --backend [backend] --range [range]');
-  console.error('            --grids [grids], --blocks [blocks]');
-  console.error('            --threads [threads]');
-  console.error('            --device [device] --help');
+  console.error('            --backend [backend] --device [device]');
+  console.error('            --nonce [nonce] --range [range]');
+  console.error('            --grids [grids] --blocks [blocks]');
+  console.error('            --threads [threads] --help');
   process.exit(1);
 }
 
@@ -101,6 +103,7 @@ console.log(info);
 
     await miner.mineAsync(hdr, {
       backend: backend,
+      nonce: nonce,
       range: range,
       grids: grids,
       blocks: blocks,
