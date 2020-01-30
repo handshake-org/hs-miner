@@ -39,7 +39,7 @@ let help;
 
 try {
   backend = config.str(['backend', 'b'], lib.BACKEND);
-  range = config.uint(['range', 'r'], 10000);
+  range = config.uint(['range', 'r'], 0xffffffff);
   grids = config.uint(['grids', 'm'], 52428);
   blocks = config.uint(['blocks', 'n'], 512);
   threads = config.uint(['threads', 'x'],
