@@ -27,16 +27,19 @@ const miner = require('hs-miner');
 
 const hdr = Buffer.alloc(256, 0x00);
 
-if (miner.hasCUDA())
-  console.log('Mining with cuda support!');
+console.log('Available backends: ', miner.getBackends());
+console.log('Available devices: ', miner.getDevices());
 
-console.log('CUDA devices:');
-console.log(miner.getDevices());
+if (miner.hasCUDA()) {
+  console.log('Mining with cuda support!');
+}
 
 (async () => {
   const [nonce, match] = await miner.mineAsync(hdr, {
     backend: 'cuda',
     target: Buffer.alloc(32, 0xff),
+    nonce: 123456,
+    range: 2048,
     grids: 256,
     blocks: 8,
     threads: 2048
