@@ -35,7 +35,8 @@ let help;
 try {
   iterations = config.uint(['iterations', 'i'], 10);
   backend = config.str(['backend', 'b'], miner.BACKEND);
-  range = config.uint(['range', 'r'], 10000);
+  range = config.uint(['range', 'r'],
+    backend === 'simple' ? 1000000 : 26843136);
   grids = config.uint(['grids', 'm'],
     backend === 'simple' ? 0 : 52428);
   blocks = config.uint(['blocks', 'n'],
@@ -87,6 +88,7 @@ const hdr = Buffer.alloc(256);
 const info = ''
   + 'Backend: ' + backend + ', '
   + 'Device: ' + device + '\n'
+  + 'Ops: ' + range + ', '
   + 'Threads: ' + threads + ', '
   + 'Grids: ' + grids + ', '
   + 'Blocks: ' + blocks + ', '
