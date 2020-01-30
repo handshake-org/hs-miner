@@ -199,6 +199,24 @@ hs_opencl_run(hs_options_t *options, uint32_t *result, bool *match) {
     exit(1);
   }
 
+  cl_mem d_start_nonce = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR
+    | CL_MEM_COPY_HOST_PTR, sizeof(uint32_t), &options->nonce, &err);
+
+  if (err != CL_SUCCESS) {
+    printf("failed to create d_start_nonce buffer: %d\n", err);
+    free(dids);
+    exit(1);
+  }
+
+  cl_mem d_range = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR
+    | CL_MEM_COPY_HOST_PTR, sizeof(uint32_t), &options->range, &err);
+
+  if (err != CL_SUCCESS) {
+    printf("failed to create d_range buffer: %d\n", err);
+    free(dids);
+    exit(1);
+  }
+
   cl_mem d_match = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR
     | CL_MEM_COPY_HOST_PTR, sizeof(bool), match, &err);
 
@@ -228,7 +246,9 @@ hs_opencl_run(hs_options_t *options, uint32_t *result, bool *match) {
   /* Create kernel arguments. */
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_header);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_nonce);
-  err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_match);
+  err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_start_nonce);
+  err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &d_range);
+  err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &d_match);
   if(err != CL_SUCCESS) {
     printf("failed to create kernel arguments: %d\n", err);
     exit(1);
@@ -267,6 +287,8 @@ hs_opencl_run(hs_options_t *options, uint32_t *result, bool *match) {
   clReleaseKernel(kernel);
   clReleaseMemObject(d_header);
   clReleaseMemObject(d_nonce);
+  clReleaseMemObject(d_start_nonce);
+  clReleaseMemObject(d_range);
   clReleaseMemObject(d_match);
   clReleaseCommandQueue(queue);
   clReleaseProgram(clp);

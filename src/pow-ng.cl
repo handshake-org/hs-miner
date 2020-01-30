@@ -356,6 +356,8 @@ __kernel void
 pow_ng(
   __global LONG *g_header,
   __global WORD *g_nonce,
+  __global WORD *g_start_nonce,
+  __global WORD *g_range,
   __global bool *g_match
 ) {
   if (*g_match)
@@ -418,7 +420,11 @@ pow_ng(
     g_header[14], g_header[15]
   };
 
-  WORD nonce = get_global_id(0);
+  WORD nonce = get_global_id(0) + *g_start_nonce;
+
+  if ((*g_range + *g_start_nonce) <= nonce)
+    return;
+
   opencl_memcpy(m, &nonce, 4);
 
   /**
