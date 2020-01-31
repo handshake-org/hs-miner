@@ -27,10 +27,10 @@ cd ${dir}/..
 set -ex
 
 CXX=$(test -z "$CXX" && echo 'g++' || echo "$CXX")
-ENDIAN=$(./scripts/get endian)
-CUDA_HAS=$(./scripts/get cuda_has)
-NVCC=$(./scripts/get nvcc)
-NETWORK=$(./scripts/get network)
+ENDIAN=$(bash scripts/get endian)
+CUDA_HAS=$(bash scripts/get cuda_has)
+NVCC=$(bash scripts/get nvcc)
+NETWORK=$(bash scripts/get network)
 DENDIAN=$(test "$ENDIAN" = "little" \
   && echo -DHS_LITTLE_ENDIAN \
   || echo -DHS_BIG_ENDIAN)

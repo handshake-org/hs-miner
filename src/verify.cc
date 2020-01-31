@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include <stdbool.h>
 #include "common.h"
 #include "header.h"

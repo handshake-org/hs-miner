@@ -24,4 +24,4 @@ dir=$(dirname "$file")
 
 cd ${dir}/..
 
-HS_NETWORK=$1 CUDA_PREFIX=$2 ./scripts/build
+HS_NETWORK=$1 CUDA_PREFIX=$2 bash scripts/build

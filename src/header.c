@@ -205,13 +205,12 @@ hs_header_sub_encode(const hs_header_t *hdr, uint8_t *data) {
 
 void
 hs_header_sub_hash(const hs_header_t *hdr, uint8_t *hash) {
-  int size = hs_header_sub_size(hdr);
-  uint8_t sub[size];
+  uint8_t sub[160];
   hs_header_sub_encode(hdr, sub);
 
   hs_blake2b_ctx ctx;
   assert(hs_blake2b_init(&ctx, 32) == 0);
-  hs_blake2b_update(&ctx, sub, size);
+  hs_blake2b_update(&ctx, sub, 160);
   assert(hs_blake2b_final(&ctx, hash, 32) == 0);
 }
 
