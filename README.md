@@ -70,10 +70,8 @@ if (miner.hasCUDA()) {
 - `miner.hasCUDA()` - Test whether CUDA support was built.
 - `miner.hasOpenCL()` - Test whether OpenCL support was built.
 - `miner.hasDevice()` - Test whether a device is available.
-- `miner.getCUDADeviceCount()` - Get count of CUDA devices.
-- `miner.getOpenCLDeviceCount()` - Get count of OpenCL devices.
-- `miner.getCUDADevices()` - Get CUDA devices. Returns an array of objects.
-- `miner.getOpenCLDevices()` - Get OpenCL devices. Returns an array of objects.
+- `miner.getDeviceCount(type)` - Get count of CUDA or OpenCL devices.
+- `miner.getDevices(type)` - Get CUDA or OpenCL devices. Returns an array of objects.
 
 ## Utilities
 
