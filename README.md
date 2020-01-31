@@ -35,7 +35,7 @@ if (miner.hasCUDA()) {
 }
 
 (async () => {
-  const [nonce, match] = await miner.mineAsync(hdr, {
+  const [nonce, extraNonce, match] = await miner.mineAsync(hdr, {
     backend: 'cuda',
     target: Buffer.alloc(32, 0xff),
     nonce: 123456,
@@ -46,6 +46,7 @@ if (miner.hasCUDA()) {
   });
 
   console.log('Nonce: %d', nonce);
+  console.log('Extra Nonce: %s', extraNonce);
   console.log('Match: %s', match);
 })();
 ```
