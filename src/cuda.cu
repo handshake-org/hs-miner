@@ -802,7 +802,7 @@ void hs_padding(const uint8_t *prev_block, const uint8_t *tree_root, size_t len)
 }
 
 // hs_miner_func for the cuda backend
-int32_t hs_cuda_run(hs_options_t *options, uint32_t *nonce, uint8_t *extra_nonce, bool *match)
+int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, uint8_t *extra_nonce, bool *match)
 {
     uint32_t *out_nonce;
     bool *out_match;

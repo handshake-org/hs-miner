@@ -51,4 +51,4 @@ cuda_hs_hex_encode(const uint8_t *data, size_t data_len, char *str) {
   return true;
 }
 
-int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, bool *match);
+int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, uint8_t *extra_nonce, bool *match);
