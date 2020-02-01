@@ -26,7 +26,6 @@ RUN npm run install-testnet
 FROM base
 ENV PATH="${PATH}:/code/bin:/code/node_modules/.bin"
 COPY --from=build /code/node_modules /code/node_modules/
-COPY --from=build /code/cuckoo /code/cuckoo/
 COPY --from=build /code/build /code/build/
 COPY bin /code/bin/
 COPY lib /code/lib/

@@ -1,6 +1,6 @@
 build/
-cuckoo/
 node_modules/
 npm-debug.log
 src/*.a
-src/tromp/
+src/*.o
+src/*.cup

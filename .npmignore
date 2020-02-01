@@ -8,13 +8,11 @@
 .yarnignore
 bench/
 build/
-cuckoo/
 docs/
 node_modules/
 npm-debug.log
 package-lock.json
 src/*.a
-src/tromp/
 test/
 webpack.*.js
 yarn.lock

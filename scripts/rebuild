@@ -24,5 +24,4 @@ dir=$(dirname "$file")
 
 cd ${dir}/..
 
-HS_NETWORK=$1 CUDA_PREFIX=$2 ./scripts/download
 HS_NETWORK=$1 CUDA_PREFIX=$2 ./scripts/build

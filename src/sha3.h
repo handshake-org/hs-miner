@@ -20,7 +20,7 @@
 #ifndef _HS_SHA3_H
 #define _HS_SHA3_H
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -53,7 +53,7 @@ void hs_sha3_final(hs_sha3_ctx *ctx, unsigned char *result);
 #define hs_keccak_update hs_sha3_update
 void hs_keccak_final(hs_sha3_ctx *ctx, unsigned char *result);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

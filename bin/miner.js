@@ -2,31 +2,34 @@
 
 const assert = require('assert');
 const request = require('brq');
+const crypto = require('crypto');
 const miner = require('../');
+
+const EXTRA_NONCE = Buffer.alloc(miner.EXTRA_NONCE_SIZE);
 
 class Miner {
   constructor(options) {
     this.backend = options.backend || miner.BACKEND;
+    this.nonce = options.nonce || 0;
     this.range = options.range || 0;
+    this.grids = options.grids || 0;
+    this.blocks = options.blocks || 0;
     this.threads = options.threads || 0;
-    this.trims = options.trims || 0;
     this.device = options.device == null ? -1 : options.device;
     this.ssl = options.ssl || false;
     this.host = options.host || 'localhost';
     this.port = options.port || getPort();
     this.user = options.user || 'hnsrpc';
     this.pass = options.pass || '';
-    this.count = 1;
+    this.type = miner.getBackendDevice(this.backend);
+    this.count = miner.getDeviceCount(this.type);
     this.sequence = 0;
     this.hdr = Buffer.alloc(miner.HDR_SIZE, 0x00);
-    this.target = Buffer.alloc(32, 0xff);
+    this.target = options.target || Buffer.alloc(32, 0xff);
     this.height = 0;
     this.mining = false;
     this.offset = 0;
-    this.root = Buffer.alloc(32, 0x00).toString('hex');
-
-    if (miner.HAS_CUDA)
-      this.count = miner.getDeviceCount();
+    this.maskHash = Buffer.alloc(32, 0x00);
   }
 
   log(...args) {
@@ -42,22 +45,43 @@ class Miner {
       throw new Error(`Backend ${this.backend} not supported!`);
 
     this.log('Miner params:');
-    this.log('  Backend: %s', this.backend);
-    this.log('  CUDA: %s', miner.HAS_CUDA);
     this.log('  Network: %s', miner.NETWORK);
-    this.log('  Edge Bits: %d', miner.EDGE_BITS);
-    this.log('  Proof Size: %d', miner.PROOF_SIZE);
-    this.log('  Easipct: %d', miner.PERC);
+    this.log('  Device Type: %s', this.type);
+    this.log('  Backend: %s', this.backend);
+
+    const deviceids = [];
+    for (let i = 0; i < this.count; i++)
+      deviceids.push(i);
+    this.log('  Using devices: ' + deviceids.join(','));
+
+    const types = [];
+    if (miner.getCPUCount() > 0)
+      types.push('cpu');
+    if (miner.HAS_CUDA)
+      types.push('cuda');
+    if (miner.HAS_OPENCL)
+      types.push('opencl');
+
+    this.log('  Supported Device Types: %s', types.join(','));
     this.log('');
 
     if (miner.HAS_CUDA) {
-      this.log('CUDA Devices:');
-      for (const {id, name, memory, bits, clock} of miner.getDevices())
-        this.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
-    } else {
-      this.log('CPUs:');
+      console.log('CUDA Devices:');
+      for (const {id, name, memory, bits, clock} of miner.getDevices('cuda'))
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+    }
+
+    if (miner.HAS_OPENCL) {
+      console.log('OpenCL Devices:');
+      for (const {id, name, memory, bits, clock} of miner.getDevices('opencl'))
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+    }
+
+    // We don't care about the CPUs if CUDA or OpenCL are installed.
+    if (this.type === 'cpu') {
+      console.log('CPUs:');
       for (const {id, name, memory, bits, clock} of miner.getCPUs())
-        this.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
+        console.log(`  ${id}: <${name}> ${memory} ${bits} ${clock}`);
     }
 
     this.log('');
@@ -85,7 +109,7 @@ class Miner {
   }
 
   async repoll() {
-    const result = await this.getWork(this.root);
+    const result = await this.getWork();
 
     if (!result)
       return;
@@ -95,8 +119,12 @@ class Miner {
       target,
       height,
       time,
-      root
+      maskHash
     } = result;
+
+    // Not new work.
+    if (maskHash.equals(this.maskHash))
+      return;
 
     const now = Math.floor(Date.now() / 1000);
     const offset = time - now;
@@ -109,7 +137,7 @@ class Miner {
     this.hdr = hdr;
     this.target = target;
     this.height = height;
-    this.root = root;
+    this.maskHash = maskHash;
 
     miner.stopAll();
 
@@ -123,8 +151,8 @@ class Miner {
     }
   }
 
-  async getWork(root) {
-    const res = await this.execute('getwork', [root]);
+  async getWork() {
+    const res = await this.execute('getwork', [this.maskHash.toString('hex')]);
 
     if (!res)
       return null;
@@ -133,7 +161,7 @@ class Miner {
       throw new Error('Non-object sent as getwork response.');
 
     if (res.network !== miner.NETWORK) {
-      console.error('Wrong network: %s.', res.network);
+      this.error('Wrong network: %s.', res.network);
       process.exit(1);
     }
 
@@ -163,14 +191,14 @@ class Miner {
     if ((time >>> 0) !== time)
       throw new Error('Bad time.');
 
-    const {merkleRoot} = readHeader(hdr);
+    const {maskHash} = readHeader(hdr);
 
     return {
       hdr,
       target,
       height,
       time,
-      root: merkleRoot
+      maskHash
     };
   }
 
@@ -192,24 +220,38 @@ class Miner {
     return res;
   }
 
-  toBlock(hdr, nonce, sol) {
+  toBlock(hdr, nonce, extraNonce) {
     assert(hdr.length === miner.HDR_SIZE);
-    const raw = Buffer.allocUnsafe(hdr.length + 1 + sol.length);
-    hdr.copy(raw, 0);
-    raw.writeUInt32LE(nonce >>> 0, hdr.length - 4);
-    raw[hdr.length] = sol.length >>> 2;
-    sol.copy(raw, hdr.length + 1);
-    return raw;
+    hdr.writeUInt32LE(nonce, 0);
+    extraNonce.copy(hdr, miner.EXTRA_NONCE_START);
+    return hdr;
   }
+
+  /**
+   * Create a mining job. The backend can choose
+   * a strategy in searching through the nonce/extra
+   * nonce space. Different backends may use different
+   * arguments. Returns the nonce, extra nonce and a
+   * bool that indicates if the job found a proof.
+   *
+   * `simple` uses nonce and range
+   * `cuda` uses grids, blocks and threads
+   *
+   * @param {Number} index  - device index
+   * @param {Buffer} hdr    - raw header
+   * @param {Buffer} target - target (bytes)
+   * @returns {Promise} [Number, Buffer, Boolean]
+   */
 
   job(index, hdr, target) {
     return miner.mineAsync(hdr, {
       backend: this.backend,
-      nonce: index * this.range,
+      nonce: this.nonce,
       range: this.range,
       target,
+      grids: this.grids,
+      blocks: this.blocks,
       threads: this.threads,
-      trims: this.trims,
       device: index
     });
   }
@@ -217,33 +259,32 @@ class Miner {
   async mine(hdr, target) {
     const jobs = [];
 
+    // Use a single device if specified, otherwise use
+    // all of the devices.
     if (this.device !== -1) {
       this.log('Using device: %d', this.device);
       jobs.push(this.job(this.device, hdr, target));
     } else {
-      for (let i = 0; i < this.count; i++)
+      for (let i = 0; i < this.count; i++) {
+        randomize(hdr, miner.EXTRA_NONCE_END - 12, miner.EXTRA_NONCE_END);
         jobs.push(this.job(i, hdr, target));
+      }
     }
 
     const result = await Promise.all(jobs);
 
     for (let i = 0; i < result.length; i++) {
-      const [sol, nonce, match] = result[i];
+      const [nonce, extraNonce, match] = result[i];
 
       if (match)
-        return [sol, nonce];
-
-      if (sol) {
-        const hash = miner.sha3(sol, 'hex');
-        this.log('Best share: %s with %d (device=%d)', hash, nonce, i);
-      }
+        return [nonce, extraNonce, true];
     }
 
-    return [null, 0];
+    return [0, EXTRA_NONCE, false];
   }
 
   getJob() {
-    return [this.hdr, this.target, this.height, this.root];
+    return [this.hdr, this.target, this.height, this.maskHash];
   }
 
   async work() {
@@ -255,43 +296,44 @@ class Miner {
   }
 
   async _work() {
-    let sol = null;
-    let nonce;
+    let nonce, extraNonce, valid;
+    let i = 0;
 
     for (;;) {
       if (!this.mining)
         break;
 
-      const [hdr, target, height, root] = this.getJob();
+      // Handle overflow
+      i = i++ % 1000;
+      const [hdr, target, height, maskHash] = this.getJob();
 
       increment(hdr, this.now());
 
-      this.log('Mining height %d (target=%s).',
-        height, target.toString('hex'));
+      if (i % 1e2 === 0) {
+        this.log('Mining height %d (target=%s).',
+          height, target.toString('hex'));
+      }
 
       try {
-        [sol, nonce] = await this.mine(hdr, target);
+        [nonce, extraNonce, valid] = await this.mine(hdr, target);
       } catch (e) {
         this.error(e.stack);
         continue;
       }
 
-      if (root !== this.root) {
+      if (!valid)
+        continue;
+
+      if (!maskHash.equals(this.maskHash)) {
         this.log('New job. Switching.');
         continue;
       }
 
-      if (!sol) {
-        increment(hdr, this.now());
-        continue;
-      }
+      this.log('Found valid nonce: %d, extra nonce %s',
+        nonce, extraNonce.toString('hex'));
 
-      this.log('Found solution: %d %s',
-        nonce, miner.sha3(sol).toString('hex'));
+      const raw = this.toBlock(hdr, nonce, extraNonce);
 
-      const raw = this.toBlock(hdr, nonce, sol);
-
-      let valid = true;
       let reason = '';
 
       try {
@@ -301,11 +343,11 @@ class Miner {
       }
 
       if (!valid) {
-        this.log('Invalid block submitted: %s.', miner.blake2b(raw, 'hex'));
+        this.log('Invalid block submitted: %s.', miner.hashHeader(raw, 'hex'));
         this.log('Reason: %s', reason);
       }
 
-      if (root !== this.root) {
+      if (!maskHash.equals(this.maskHash)) {
         this.log('New job. Switching.');
         continue;
       }
@@ -359,6 +401,26 @@ class Miner {
 
     return json.result;
   }
+
+  hashHeader(header) {
+    return miner.hashHeader(header);
+  }
+
+  verify(header, target) {
+    return miner.verify(header, target);
+  }
+
+  hasBackend(backend) {
+    return miner.hasBackend(backend);
+  }
+
+  static getBackends() {
+    return miner.getBackends();
+  }
+
+  static getCPUCount() {
+    return miner.getCPUCount();
+  }
 }
 
 /*
@@ -366,19 +428,20 @@ class Miner {
  */
 
 function increment(hdr, now) {
-  const time = readTime(hdr, 132);
+  const time = readTime(hdr, 4);
 
   switch (miner.NETWORK) {
     case 'main':
     case 'regtest':
       if (now > time) {
-        writeTime(hdr, now, 132);
+        writeTime(hdr, now, 4);
         return;
       }
       break;
   }
 
-  for (let i = miner.NONCE_START; i < miner.NONCE_END; i++) {
+  // Increment the extra nonce.
+  for (let i = miner.EXTRA_NONCE_START; i < miner.EXTRA_NONCE_END; i++) {
     if (hdr[i] !== 0xff) {
       hdr[i] += 1;
       break;
@@ -410,45 +473,44 @@ function writeTime(hdr, time, off) {
   hdr.writeUInt16LE(0, off + 6);
 }
 
+function randomize(hdr, start, end) {
+  const random = crypto.randomBytes(end - start);
+  random.copy(hdr, start);
+}
+
 function readHeader(hdr) {
-  let hash = undefined;
-  let solution = undefined;
-  let powHash = undefined;
-
-  if (hdr.length > miner.HDR_SIZE) {
-    const size = hdr[miner.HDR_SIZE] * 4;
-    assert(size === miner.PROOF_SIZE * 4);
-
-    const off = miner.HDR_SIZE + 1;
-
-    assert(hdr.length === off + size);
-
-    hash = miner.blake2b(hdr, 'hex');
-    solution = hdr.slice(off, off + size);
-    powHash = miner.sha3(solution, 'hex');
-
-    solution = solution.toString('hex');
-  } else {
-    assert(hdr.length === miner.HDR_SIZE);
-  }
-
   return {
-    hash,
-    powHash,
-    version: hdr.readUInt32LE(0),
-    prevBlock: hdr.toString('hex', 4, 36),
-    merkleRoot: hdr.toString('hex', 36, 68),
-    treeRoot: hdr.toString('hex', 68, 100),
-    reservedRoot: hdr.toString('hex', 100, 132),
-    time: readTime(hdr, 132),
-    bits: hdr.readUInt32LE(140),
-    nonce: hdr.toString('hex', miner.NONCE_START, miner.HDR_SIZE),
-    solution
+    nonce: hdr.readUInt32LE(0),
+    time: readTime(hdr, 4),
+    padding: hdr.slice(12, 32),
+    prevBlock: hdr.slice(32, 64),
+    treeRoot: hdr.slice(64, 96),
+    maskHash: hdr.slice(96, 128),
+    extraNonce: hdr.slice(128, 152),
+    reservedRoot: hdr.slice(152, 184),
+    witnessRoot: hdr.slice(184, 216),
+    merkleRoot: hdr.slice(216, 248),
+    version: hdr.readUInt32LE(248),
+    bits: hdr.readUInt32LE(252)
   };
 }
 
 function readJSON(hdr) {
-  return JSON.stringify(readHeader(hdr), null, 2);
+  const json = {
+    nonce: hdr.readUInt32LE(0),
+    time: readTime(hdr, 4),
+    padding: hdr.toString('hex', 12, 32),
+    prevBlock: hdr.toString('hex', 32, 64),
+    treeRoot: hdr.toString('hex', 64, 96),
+    maskHash: hdr.toString('hex', 96, 128),
+    extraNonce: hdr.toString('hex', 128, 152),
+    reservedRoot: hdr.toString('hex', 152, 184),
+    witnessRoot: hdr.toString('hex', 184, 216),
+    merkleRoot: hdr.toString('hex', 216, 248),
+    version: hdr.readUInt32LE(248),
+    bits: hdr.readUInt32LE(252)
+  };
+  return JSON.stringify(json, null, 2);
 }
 
 function getPort() {
@@ -470,4 +532,7 @@ function getPort() {
  * Expose
  */
 
+Miner.EXTRA_NONCE_SIZE = miner.EXTRA_NONCE_SIZE;
+Miner.readHeader = readHeader;
+Miner.readJSON = readJSON;
 module.exports = Miner;

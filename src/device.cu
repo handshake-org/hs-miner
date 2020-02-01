@@ -3,7 +3,7 @@
 #include "common.h"
 
 uint32_t
-hs_device_count(void) {
+hs_cuda_device_count(void) {
   int32_t device_count = 0;
 
   cudaGetDeviceCount(&device_count);
@@ -15,7 +15,7 @@ hs_device_count(void) {
 }
 
 bool
-hs_device_info(uint32_t device, hs_device_info_t *info) {
+hs_cuda_device_info(uint32_t device, hs_device_info_t *info) {
   assert(info);
 
   int32_t device_count = 0;

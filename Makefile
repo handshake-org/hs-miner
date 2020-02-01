@@ -1,17 +1,17 @@
 all:
-	@npm run install-main
+	@EXTRA_ARG=$(extra) npm run install-main $(cuda_path)
 
 main:
-	@npm run install-main
+	@EXTRA_ARG=$(extra) npm run install-main $(cuda_path)
 
 testnet:
-	@npm run install-testnet
+	@EXTRA_ARG=$(extra) npm run install-testnet $(cuda_path)
 
 regtest:
-	@npm run install-regtest
+	@EXTRA_ARG=$(extra) npm run install-regtest $(cuda_path)
 
 simnet:
-	@npm run install-simnet
+	@EXTRA_ARG=$(extra) npm run install-simnet $(cuda_path)
 
 clean:
 	@npm run clean

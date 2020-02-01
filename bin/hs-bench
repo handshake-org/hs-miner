@@ -1,0 +1,120 @@
+#!/usr/bin/env node
+
+'use strict';
+
+process.title = 'hs-bench';
+
+const Config = require('bcfg');
+const miner = require('../');
+const pkg = require('../package.json');
+
+const config = new Config('hsd', {
+  suffix: 'network',
+  fallback: 'main'
+});
+
+config.inject({ network: miner.NETWORK });
+
+config.load({
+  env: true,
+  argv: true
+});
+
+config.open('miner.conf');
+
+let iterations;
+let nonce;
+let backend;
+let range;
+let grids;
+let blocks;
+let threads;
+let device;
+let version;
+let help;
+
+try {
+  iterations = config.uint(['iterations', 'i'], 10);
+  backend = config.str(['backend', 'b'], miner.BACKEND);
+  nonce = config.uint(['nonce'], 0);
+  range = config.uint(['range', 'r'],
+    backend === 'simple' ? 1000000 : 26843136);
+  grids = config.uint(['grids', 'm'],
+    backend === 'simple' ? 0 : 52428);
+  blocks = config.uint(['blocks', 'n'],
+    backend === 'simple' ? 0 : 512);
+  threads = config.uint(['threads', 'x'],
+    backend === 'simple' ? miner.getCPUCount() : 26843136);
+  device = config.uint(['device', 'd'], -1);
+  version = config.bool(['version', 'v'], false);
+  help = config.bool(['help', 'h', '?'], false);
+} catch (e) {
+  console.error(e.message);
+  version = false;
+  help = true;
+}
+
+if (version) {
+  console.error(pkg.version);
+  process.exit(1);
+}
+
+if (help) {
+  console.error(`hs-bench ${pkg.version}`);
+  console.error(
+    '  Copyright (c) 2018, Christopher Jeffrey <chjj@handshake.org>');
+  console.error('');
+  console.error('Usage:');
+  console.error('$ hs-bench');
+  console.error('            --backend [backend] --device [device]');
+  console.error('            --nonce [nonce] --range [range]');
+  console.error('            --grids [grids] --blocks [blocks]');
+  console.error('            --threads [threads] --help');
+  process.exit(1);
+}
+
+function bench(name) {
+  const start = process.hrtime();
+  return function end(ops) {
+    const elapsed = process.hrtime(start);
+    const time = elapsed[0] + elapsed[1] / 1e9;
+    const rate = ops / (1e6 * time);
+
+    console.log('%s: ops=%d, time=%d, rate=%s Mh/sec',
+      name, ops, time, rate.toFixed(5));
+  };
+};
+
+const hdr = Buffer.alloc(256);
+
+const info = ''
+  + 'Backend: ' + backend + ', '
+  + 'Device: ' + device + '\n'
+  + 'Ops: ' + range + ', '
+  + 'Threads: ' + threads + ', '
+  + 'Grids: ' + grids + ', '
+  + 'Blocks: ' + blocks + ', '
+  + 'Iterations: ' + iterations;
+
+console.log(info);
+(async () => {
+  for (let i = 0; i < iterations; i++) {
+    const mining = bench('hs-mine');
+
+    await miner.mineAsync(hdr, {
+      backend: backend,
+      nonce: nonce,
+      range: range,
+      grids: grids,
+      blocks: blocks,
+      threads: threads,
+      target: Buffer.alloc(32, 0x00),
+      device: device === -1 ? null : device
+    });
+
+    mining(backend === 'simple' ? range : threads);
+  }
+})().catch((err) => {
+  console.log(err);
+  process.exit(1);
+});

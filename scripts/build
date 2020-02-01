@@ -30,9 +30,6 @@ CXX=$(test -z "$CXX" && echo 'g++' || echo "$CXX")
 ENDIAN=$(./scripts/get endian)
 CUDA_HAS=$(./scripts/get cuda_has)
 NVCC=$(./scripts/get nvcc)
-BITS=$(./scripts/get bits)
-SIZE=$(./scripts/get size)
-PERC=$(./scripts/get perc)
 NETWORK=$(./scripts/get network)
 DENDIAN=$(test "$ENDIAN" = "little" \
   && echo -DHS_LITTLE_ENDIAN \
@@ -43,31 +40,51 @@ compile_cuda() {
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
     $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
-    -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -dc -o ${miner}.o -c \
     ${miner}.cu
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
     $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
-    -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -dlink -o ${miner}.dlink.o \
     ${miner}.o
 
   ${NVCC} -ccbin ${CXX} --compiler-options='-fPIC' \
     $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
-    -DEDGEBITS=$BITS -DPROOFSIZE=$SIZE -DPERC=$PERC \
     -m64 -arch=sm_35 -lib -o ${miner}.a \
     ${miner}.o ${miner}.dlink.o
 }
 
+preprocess_cuda() {
+  local miner="$1"
+
+  ${NVCC} -E -ccbin ${CXX} --compiler-options='-fPIC' \
+    $DENDIAN -DHS_HAS_CUDA -DHS_NETWORK=$NETWORK \
+    -m64 -arch=sm_35 -dc -o ${miner}.cup -c \
+    ${miner}.cu
+}
+
+if test -n "$EXTRA_ARG"; then
+  echo "Extra: $EXTRA_ARG"
+fi
+
+echo $CUDA_HAS
 if test $CUDA_HAS -eq 1; then
   compile_cuda src/device
-  compile_cuda src/mean-cuda
-  compile_cuda src/lean-cuda
+  compile_cuda src/cuda
+
+  if test "$EXTRA_ARG" = "preprocess"; then
+    preprocess_cuda src/device
+    preprocess_cuda src/cuda
+  fi
 else
   rm -f src/device.a
-  rm -f src/mean-cuda.a
-  rm -f src/lean-cuda.a
+  rm -f src/cuda.a
+
+  rm -f src/device.o
+  rm -f src/cuda.o
+
+  rm -f src/cuda/device.dlink.o
+  rm -f src/cuda/cuda.dlink.o
 fi
 
 node-gyp rebuild

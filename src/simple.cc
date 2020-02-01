@@ -1,64 +1,121 @@
-#include "tromp/simple_miner.cpp"
 #include <unistd.h>
+#include <stdio.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "common.h"
+#include "header.h"
+#include "error.h"
+#include "utils.h"
 
-int32_t
-hs_simple_run(
-  hs_options_t *options,
-  uint8_t *solution,
-  uint32_t *result,
-  bool *match
-) {
-  uint32_t nonce = options->nonce;
+typedef struct hs_thread_args_s {
+  hs_options_t *options;
+  uint32_t *result;
+  bool *match;
+  uint8_t thread;
+} hs_thread_args_t;
+
+void *
+hs_simple_thread(void *ptr) {
+  hs_thread_args_t *args = (hs_thread_args_t *)ptr;
+  hs_options_t *options = args->options;
+  uint32_t *result = args->result;
+  bool *match = args->match;
+  uint8_t thread = args->thread;
+
+  uint32_t nonce = 0;
   uint32_t range = 1;
   size_t header_len = options->header_len;
-  uint8_t header[MAX_HEADER_SIZE];
-  uint8_t hash[32];
-  uint8_t chash[32];
+  hs_header_t header[HEADER_SIZE];
 
-  memset(hash, 0xff, 32);
-
-  if (header_len < MIN_HEADER_SIZE || header_len > MAX_HEADER_SIZE)
-    return HS_EBADARGS;
-
-  memcpy(header, options->header, header_len);
+  if (options->nonce)
+    nonce = options->nonce;
 
   if (options->range)
     range = options->range;
 
-  simple_cuckoo_ctx ctx((const char *)header, header_len, nonce, EASINESS);
+  // Split up the range into threads and start
+  // this thread's nonce from a unique point in the range.
+  uint32_t sub_range = range / options->threads;
+  nonce += sub_range * thread;
+  uint32_t max = nonce + sub_range;
 
-  uint32_t sol[PROOFSIZE];
-  bool has_sol = false;
+  if (header_len != HEADER_SIZE)
+    return (void *)HS_EBADARGS;
 
-  for (uint32_t r = 0; r < range; r++) {
+  hs_header_decode(options->header, header_len, header);
+
+  uint8_t hash[32];
+  memset(hash, 0xff, 32);
+
+  uint8_t target[32];
+  memcpy(target, options->target, 32);
+
+  // Cache padding
+  uint8_t pad32[32];
+  hs_header_padding(header, pad32, 32);
+
+  // Compute share data
+  uint8_t share[128];
+  hs_header_share_encode(header, share);
+
+  for (; nonce < max; nonce++) {
     if (!options->running)
-      break;
+      return (void *)HS_EABORT;
 
-    ctx.setheadernonce((char *)header, header_len, nonce + r);
+    // Insert nonce into share
+    memcpy(share, &nonce, 4);
 
-    if (!ctx.solve(sol))
-      continue;
+    hs_header_share_pow(share, pad32, hash);
 
-    hs_hash_solution(sol, chash);
+    if (memcmp(hash, target, 32) <= 0) {
+      // WINNER!
+      options->running = false;
 
-    if (memcmp(chash, hash, 32) <= 0) {
-      *result = nonce + r;
-      for (int32_t i = 0; i < PROOFSIZE; i++)
-        hs_write_u32(&solution[i * 4], sol[i]);
-      memcpy(hash, chash, 32);
-      has_sol = true;
-    }
-
-    if (memcmp(chash, options->target, 32) <= 0) {
       *match = true;
-      return HS_SUCCESS;
+      *result = nonce;
+      return (void *)HS_SUCCESS;
     }
   }
 
-  if (has_sol)
-    return HS_SUCCESS;
+  return (void *)HS_ENOSOLUTION;
+}
 
-  return HS_ENOSOLUTION;
+// Return code for hs_simple_thread() threads must be in scope
+// even after hs_simple_run returns or it'll segfault.
+int32_t rc;
+
+int32_t
+hs_simple_run(
+  hs_options_t *options,
+  uint32_t *result,
+  uint8_t *extra_nonce,
+  bool *match
+) {
+  uint8_t NUM_THREADS = options->threads;
+  pthread_t threads[NUM_THREADS];
+
+  // Array of args structs for each thread
+  hs_thread_args_t args[NUM_THREADS];
+
+  for(uint8_t i = 0; i < NUM_THREADS; i++) {
+    // Create new args object in memory for each thread so we can add
+    // thread IDs to it and return different nonces.
+    args[i].options = options;
+    args[i].result = result;
+    args[i].match = match;
+    args[i].thread = i;
+
+    int err = pthread_create(&threads[i], NULL, hs_simple_thread, &args[i]);
+    if (err != 0) {
+      exit(err);
+    }
+  }
+
+  int32_t final_rc = HS_MAXERROR;
+  for(uint8_t i = 0; i < NUM_THREADS; i++) {
+    pthread_join(threads[i], (void **)&rc);
+    if (rc < final_rc)
+      final_rc = 0;
+  }
+  return final_rc;
 }
