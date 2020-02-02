@@ -1,4 +1,4 @@
-#include <unistd.h>
+#ifndef _WIN32
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -119,3 +119,4 @@ hs_simple_run(
   }
   return final_rc;
 }
+#endif

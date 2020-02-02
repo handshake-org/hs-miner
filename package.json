@@ -16,17 +16,17 @@
   "author": "Christopher Jeffrey <chjjeffrey@gmail.com>",
   "main": "./lib/hs-miner.js",
   "bin": {
-    "hs-miner": "./bin/hs-miner",
-    "hs-mine": "./bin/hs-mine"
+    "hs-miner": "bash bin/hs-miner",
+    "hs-mine": "bash bin/hs-mine"
   },
   "scripts": {
-    "install": "./scripts/rebuild main",
-    "install-main": "./scripts/rebuild main",
-    "install-testnet": "./scripts/rebuild testnet",
-    "install-regtest": "./scripts/rebuild regtest",
-    "install-simnet": "./scripts/rebuild simnet",
-    "bench": "./bin/hs-bench",
-    "clean": "./scripts/clean",
+    "install": "bash scripts/rebuild main",
+    "install-main": "bash scripts/rebuild main",
+    "install-testnet": "bash scripts/rebuild testnet",
+    "install-regtest": "bash scripts/rebuild regtest",
+    "install-simnet": "bash scripts/rebuild simnet",
+    "bench": "bash bin/hs-bench",
+    "clean": "bash scripts/clean",
     "lint": "eslint bin/* lib/*.js test/*.js || exit 0",
     "test": "bmocha --reporter spec test/*-test.js"
   },

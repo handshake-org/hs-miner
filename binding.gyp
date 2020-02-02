@@ -1,11 +1,11 @@
 {
   "variables": {
-    "hs_endian%": "<!(./scripts/get endian)",
-    "hs_cudahas%": "<!(./scripts/get cuda_has)",
-    "hs_cudalib%": "<!(./scripts/get cuda_lib)",
-    "hs_network%": "<!(./scripts/get network)",
-    "hs_oclhas%": "<!(./scripts/get ocl_has)",
-    "hs_os%": "<!(./scripts/get os)"
+    "hs_endian%": "<!(bash scripts/get endian)",
+    "hs_cudahas%": "<!(bash scripts/get cuda_has)",
+    "hs_cudalib%": "<!(bash scripts/get cuda_lib)",
+    "hs_network%": "<!(bash scripts/get network)",
+    "hs_oclhas%": "<!(bash scripts/get ocl_has)",
+    "hs_os%": "<!(bash scripts/get os)"
   },
   "targets": [{
     "target_name": "hsminer",
@@ -16,7 +16,8 @@
       "./src/header.c",
       "./src/verify.cc",
       "./src/opencl.c",
-      "./src/simple.cc",
+      "./src/simple_unix.cc",
+      "./src/simple_windows.cc",
       "./src/utils.c"
     ],
     "cflags": [
