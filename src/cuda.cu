@@ -847,15 +847,14 @@ int32_t hs_cuda_run(hs_options_t *options, uint32_t *result, uint8_t *extra_nonc
     );
     cudaMemcpy(result, out_nonce, sizeof(uint32_t), cudaMemcpyDeviceToHost);
     cudaMemcpy(match, out_match, sizeof(bool), cudaMemcpyDeviceToHost);
+    cudaFree(out_nonce);
+    cudaFree(out_match);
 
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
       printf("error hs cuda hash: %s \n", cudaGetErrorString(error));
-      // TOOD: cudaFree?
       return HS_ENOSOLUTION;
     }
-    cudaFree(out_nonce);
-    cudaFree(out_match);
 
     if (*match)
       return HS_SUCCESS;
